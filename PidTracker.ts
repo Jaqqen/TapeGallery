@@ -70,7 +70,9 @@ export function pidManagerPlugin(): Plugin {
             });
         } catch (e) {
             const enoentIncluded: boolean = (e as Error).message.includes("ENOENT");
-            !enoentIncluded && console.error(`Unable to remove pid file (${pid}): `, e);
+            if (!enoentIncluded) {
+                console.error(`Unable to remove pid file (${pid}): `, e);
+            }
         }
     }
 

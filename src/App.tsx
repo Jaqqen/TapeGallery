@@ -14,7 +14,11 @@ function App() {
     const toggleSelect = useCallback(({id: tapeId}: Tape) => {
         setSelectedIds((prev) => {
             const next = new Set(prev);
-            next.has(tapeId) ? next.delete(tapeId) : next.add(tapeId);
+            if (next.has(tapeId)) {
+                next.delete(tapeId);
+            } else {
+                next.add(tapeId);
+            }
             return next;
         });
     }, []);
