@@ -10,3 +10,4 @@ package-lock.json
 
 # Project
 .pids
+dist
