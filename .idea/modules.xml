@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/TapeGallery.iml" filepath="$PROJECT_DIR$/TapeGallery.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/tapes-hub.main.iml" filepath="$PROJECT_DIR$/.idea/modules/tapes-hub.main.iml" />
     </modules>
   </component>
 </project>
