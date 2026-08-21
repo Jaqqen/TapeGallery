@@ -1,3 +1,13 @@
 spring:
   application:
     name: tapes-hub
+  jpa:
+    hibernate:
+      # Flyway owns the schema; Hibernate only checks the entities still match it.
+      ddl-auto: validate
+    # To bypass performance drops while keeping db-entities managed beyond the
+    # transaction boundary
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration

@@ -1,5 +1,16 @@
 spring:
+  config:
+    # Loads additional properties from .env. The '[.properties]' makes it possible for the Spring autoconfiguration
+    # to properly discover the .env file. Otherwise, the startup ends in a failure.
+    import: 'optional:file:tapes-hub/.env[.properties]'
   security:
     user:
-      name: dev
-      password: dev
+      # .env
+      name: ${DEV_USER_NAME}
+      password: ${DEV_USER_PASSWORD}
+  docker:
+    compose:
+      file: 'tapes-hub/compose.yaml'
+  flyway:
+    # the seed rows cannot appear in a deployed environment or skew tests.
+    locations: classpath:db/migration,classpath:db/seed
