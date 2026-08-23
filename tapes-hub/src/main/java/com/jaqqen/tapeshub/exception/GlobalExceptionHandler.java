@@ -6,6 +6,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.List;
 
@@ -17,14 +18,16 @@ public class GlobalExceptionHandler {
         return problem(HttpStatus.NOT_FOUND, "Tape not found", ex.getMessage());
     }
 
-    @ExceptionHandler(TapeAlreadyExistsException.class)
-    public ProblemDetail handleConflict(TapeAlreadyExistsException ex) {
-        return problem(HttpStatus.CONFLICT, "Tape already exists", ex.getMessage());
-    }
-
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
         return problem(HttpStatus.BAD_REQUEST, "Invalid request", ex.getMessage());
+    }
+
+    /** A path segment that is not a UUID, e.g. GET /api/tapes/neon-nights. */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return problem(HttpStatus.BAD_REQUEST, "Invalid request",
+                "'" + ex.getValue() + "' is not a valid tape id");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

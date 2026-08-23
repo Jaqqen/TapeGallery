@@ -4,9 +4,15 @@ import com.jaqqen.tapeshub.domain.tape.Tape;
 import com.jaqqen.tapeshub.domain.tape.TapeColors;
 import com.jaqqen.tapeshub.domain.tape.TapePattern;
 
+import java.util.UUID;
+
 /** Shared test data, taken verbatim from the web-portal's tapes.ts. */
 public final class TapeFixtures {
 
+    /** Fixed so tests can assert on Location headers and payloads without capturing. */
+    public static final UUID NEON_NIGHTS_ID = UUID.fromString("11111111-1111-4111-8111-111111111111");
+
+    /** A request body: no id - the server mints it. */
     public static final String NEON_NIGHTS_JSON = """
             {
               "title": "NEON NIGHTS",
@@ -22,7 +28,7 @@ public final class TapeFixtures {
 
     public static Tape neonNights() {
         return new Tape(
-                "neon-nights",
+                NEON_NIGHTS_ID,
                 "NEON NIGHTS",
                 "The City Never Sleeps",
                 "1987",

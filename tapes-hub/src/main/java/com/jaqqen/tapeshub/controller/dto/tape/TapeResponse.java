@@ -3,8 +3,10 @@ package com.jaqqen.tapeshub.controller.dto.tape;
 import com.jaqqen.tapeshub.domain.tape.Tape;
 import com.jaqqen.tapeshub.domain.tape.TapePattern;
 
+import java.util.UUID;
+
 public record TapeResponse(
-        String id,
+        UUID id,
         String title,
         String subtitle,
         String year,

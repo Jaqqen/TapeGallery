@@ -4,21 +4,21 @@ import com.jaqqen.tapeshub.domain.tape.Tape;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
- * Storage seam for tapes. The in-memory implementation is the only one today;
- * a persistent one can drop in without touching the service or controller.
+ * Storage seam for tapes. Everything keys off the tape's id.
  */
 public interface TapeRepository {
 
     List<Tape> findAll();
 
-    Optional<Tape> findById(String id);
+    Optional<Tape> findById(UUID id);
 
-    boolean existsById(String id);
+    boolean existsById(UUID id);
 
     Tape save(Tape tape);
 
     /** @return true when a tape was removed, false when the id was unknown. */
-    boolean deleteById(String id);
+    boolean deleteById(UUID id);
 }

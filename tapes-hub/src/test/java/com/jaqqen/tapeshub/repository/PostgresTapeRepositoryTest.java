@@ -21,13 +21,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Exercises the {@link TapeRepository} contract against a real Postgres, so the
- * schema, the Flyway migration and the entity mapping are all verified together -
+ * schema, the Flyway migrations and the entity mapping are all verified together -
  * things an in-memory fake cannot tell us.
  */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({TestcontainersConfiguration.class, PostgresTapeRepository.class})
 class PostgresTapeRepositoryTest {
+
+    private static final UUID UNKNOWN = UUID.fromString("99999999-9999-4999-8999-999999999999");
 
     @Autowired
     private PostgresTapeRepository repository;
@@ -45,51 +47,60 @@ class PostgresTapeRepositoryTest {
         repository.save(tape);
         flush();
 
-        assertThat(repository.findById("neon-nights")).contains(tape);
-        assertThat(repository.existsById("neon-nights")).isTrue();
+        assertThat(repository.findById(tape.id())).contains(tape);
+        assertThat(repository.existsById(tape.id())).isTrue();
     }
 
     @Test
     void roundTripsANullSubtitle() {
-        Tape noSubtitle = withSlug("steel-rain", null);
+        Tape noSubtitle = tape(UUID.randomUUID(), "STEEL RAIN", null);
 
         repository.save(noSubtitle);
         flush();
 
-        assertThat(repository.findById("steel-rain")).contains(noSubtitle);
+        assertThat(repository.findById(noSubtitle.id())).contains(noSubtitle);
     }
 
+    /** The reason the upsert keys off the id: an edit must move the row, not add one. */
     @Test
-    void savingTheSameSlugUpdatesInPlaceAndKeepsTheSurrogateId() {
-        repository.save(TapeFixtures.neonNights());
-        flush();
-        UUID originalId = surrogateIdOf("neon-nights");
-
-        Tape renamed = withSlug("neon-nights", "A New Subtitle");
-        repository.save(renamed);
+    void aRetitleUpdatesInPlaceAndKeepsTheId() {
+        Tape original = TapeFixtures.neonNights();
+        repository.save(original);
         flush();
 
-        assertThat(repository.findAll()).containsExactly(renamed);
+        Tape retitled = tape(original.id(), "NEON DAYS", "A New Subtitle");
+        repository.save(retitled);
+        flush();
+
+        assertThat(repository.findAll()).containsExactly(retitled);
         assertThat(countRows()).isOne();
-        assertThat(surrogateIdOf("neon-nights")).isEqualTo(originalId);
     }
 
     @Test
-    void findAllIsOrderedBySlug() {
-        repository.save(withSlug("velvet-thunder", null));
-        repository.save(withSlug("chrome-horizon", null));
-        repository.save(withSlug("neon-nights", null));
+    void allowsTwoTapesToShareATitle() {
+        repository.save(tape(UUID.randomUUID(), "NEON NIGHTS", null));
+        repository.save(tape(UUID.randomUUID(), "NEON NIGHTS", "A Remake"));
+        flush();
+
+        assertThat(countRows()).isEqualTo(2);
+    }
+
+    @Test
+    void findAllIsOrderedByTitle() {
+        repository.save(tape(UUID.randomUUID(), "VELVET THUNDER", null));
+        repository.save(tape(UUID.randomUUID(), "CHROME HORIZON", null));
+        repository.save(tape(UUID.randomUUID(), "NEON NIGHTS", null));
         flush();
 
         assertThat(repository.findAll())
-                .extracting(Tape::id)
-                .containsExactly("chrome-horizon", "neon-nights", "velvet-thunder");
+                .extracting(Tape::title)
+                .containsExactly("CHROME HORIZON", "NEON NIGHTS", "VELVET THUNDER");
     }
 
     @Test
     void persistsThePatternAsItsKebabCaseWireValue() {
-        Tape tape = new Tape("turbo-kid", "TURBO KID", null, "1988", "Adventure", "1h 42min",
-                "PG", "Full speed ahead.",
+        Tape tape = new Tape(UUID.randomUUID(), "TURBO KID", null, "1988", "Adventure",
+                "1h 42min", "PG", "Full speed ahead.",
                 new TapeColors("#00f5d4", "#00bbf9", "#f15bb5", "#0b132b"),
                 TapePattern.RETRO_BLOCKS);
 
@@ -97,9 +108,9 @@ class PostgresTapeRepositoryTest {
         flush();
 
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT pattern FROM tapes WHERE slug = 'turbo-kid'", String.class))
+                "SELECT pattern FROM tapes WHERE id = ?", String.class, tape.id()))
                 .isEqualTo("retro-blocks");
-        assertThat(repository.findById("turbo-kid"))
+        assertThat(repository.findById(tape.id()))
                 .get()
                 .extracting(Tape::pattern)
                 .isEqualTo(TapePattern.RETRO_BLOCKS);
@@ -107,18 +118,19 @@ class PostgresTapeRepositoryTest {
 
     @Test
     void reportsAnUnknownId() {
-        assertThat(repository.findById("does-not-exist")).isEmpty();
-        assertThat(repository.existsById("does-not-exist")).isFalse();
+        assertThat(repository.findById(UNKNOWN)).isEmpty();
+        assertThat(repository.existsById(UNKNOWN)).isFalse();
     }
 
     @Test
     void deleteReturnsTrueOnlyWhenARowWasRemoved() {
-        repository.save(TapeFixtures.neonNights());
+        Tape tape = TapeFixtures.neonNights();
+        repository.save(tape);
         flush();
 
-        assertThat(repository.deleteById("neon-nights")).isTrue();
+        assertThat(repository.deleteById(tape.id())).isTrue();
         flush();
-        assertThat(repository.deleteById("neon-nights")).isFalse();
+        assertThat(repository.deleteById(tape.id())).isFalse();
         assertThat(countRows()).isZero();
     }
 
@@ -129,18 +141,13 @@ class PostgresTapeRepositoryTest {
         entityManager.clear();
     }
 
-    private UUID surrogateIdOf(String slug) {
-        return jdbcTemplate.queryForObject(
-                "SELECT id FROM tapes WHERE slug = ?", UUID.class, slug);
-    }
-
     private Integer countRows() {
         return jdbcTemplate.queryForObject("SELECT count(*) FROM tapes", Integer.class);
     }
 
-    private static Tape withSlug(String slug, String subtitle) {
+    private static Tape tape(UUID id, String title, String subtitle) {
         Tape base = TapeFixtures.neonNights();
-        return new Tape(slug, base.title(), subtitle, base.year(), base.genre(), base.duration(),
+        return new Tape(id, title, subtitle, base.year(), base.genre(), base.duration(),
                 base.rating(), base.description(), base.colors(), base.pattern());
     }
 }

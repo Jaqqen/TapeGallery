@@ -28,7 +28,7 @@ public class SecurityConfig {
 
     @Bean
     @Profile("dev")
-    SecurityFilterChain devFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain devFilterChain(HttpSecurity http) {
         return http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.ignoringRequestMatchers(TAPES_API))
@@ -41,7 +41,7 @@ public class SecurityConfig {
 
     @Bean
     @Profile("!dev")
-    SecurityFilterChain defaultFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain defaultFilterChain(HttpSecurity http) {
         return http
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())

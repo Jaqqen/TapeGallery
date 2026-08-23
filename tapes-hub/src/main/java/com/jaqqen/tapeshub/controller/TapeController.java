@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/tapes")
@@ -36,7 +37,7 @@ public class TapeController {
     }
 
     @GetMapping("/{id}")
-    public TapeResponse get(@PathVariable String id) {
+    public TapeResponse get(@PathVariable UUID id) {
         return TapeResponse.from(service.findById(id));
     }
 
@@ -51,17 +52,17 @@ public class TapeController {
     }
 
     @PutMapping("/{id}")
-    public TapeResponse replace(@PathVariable String id, @Valid @RequestBody UpdateTapeRequest request) {
+    public TapeResponse replace(@PathVariable UUID id, @Valid @RequestBody UpdateTapeRequest request) {
         return TapeResponse.from(service.replace(id, request));
     }
 
     @PatchMapping("/{id}")
-    public TapeResponse patch(@PathVariable String id, @Valid @RequestBody PatchTapeRequest request) {
+    public TapeResponse patch(@PathVariable UUID id, @Valid @RequestBody PatchTapeRequest request) {
         return TapeResponse.from(service.patch(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable String id) {
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }

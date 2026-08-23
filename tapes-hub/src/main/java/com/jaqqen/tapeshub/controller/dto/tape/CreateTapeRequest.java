@@ -6,10 +6,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * Body of POST /api/tapes. {@code id} is optional - it is derived from the title when absent.
+ * Body of POST /api/tapes. Carries no identifier: the id is minted by the server.
  */
 public record CreateTapeRequest(
-        String id,
         @NotBlank String title,
         String subtitle,
         @NotBlank String year,

@@ -7,10 +7,11 @@ import com.jaqqen.tapeshub.controller.dto.tape.TapeColorsDto;
 import com.jaqqen.tapeshub.controller.dto.tape.UpdateTapeRequest;
 import com.jaqqen.tapeshub.domain.tape.Tape;
 import com.jaqqen.tapeshub.domain.tape.TapePattern;
-import com.jaqqen.tapeshub.exception.TapeAlreadyExistsException;
 import com.jaqqen.tapeshub.exception.TapeNotFoundException;
 import com.jaqqen.tapeshub.repository.InMemoryTapeRepository;
 import org.junit.jupiter.api.Test;
+
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -19,86 +20,71 @@ class TapeServiceTest {
 
     private static final TapeColorsDto COLORS =
             new TapeColorsDto("#ff006e", "#8338ec", "#ffbe0b", "#1a1a2e");
+    private static final UUID UNKNOWN = UUID.fromString("99999999-9999-4999-8999-999999999999");
 
     private final TapeService service = new TapeService(new InMemoryTapeRepository());
 
     @Test
-    void derivesTheIdFromTheTitleWhenNoneIsGiven() {
-        Tape created = service.create(createRequest(null, "NEON NIGHTS"));
+    void mintsAnIdOnCreate() {
+        Tape created = service.create(createRequest("NEON NIGHTS"));
 
-        assertThat(created.id()).isEqualTo("neon-nights");
+        assertThat(created.id()).isNotNull();
+        assertThat(created.title()).isEqualTo("NEON NIGHTS");
     }
 
     @Test
-    void keepsAnExplicitId() {
-        Tape created = service.create(createRequest("custom-id", "NEON NIGHTS"));
+    void everyCreateGetsItsOwnIdEvenForAnIdenticalTitle() {
+        Tape first = service.create(createRequest("NEON NIGHTS"));
+        Tape second = service.create(createRequest("NEON NIGHTS"));
 
-        assertThat(created.id()).isEqualTo("custom-id");
-    }
-
-    @Test
-    void slugifyStripsPunctuationAndEdgeDashes() {
-        assertThat(TapeService.slugify("  Velvet & Thunder!! ")).isEqualTo("velvet-thunder");
-        assertThat(TapeService.slugify("Chrome Horizon 2")).isEqualTo("chrome-horizon-2");
-    }
-
-    @Test
-    void rejectsATitleThatCannotBecomeAnId() {
-        assertThatThrownBy(() -> service.create(createRequest(null, "!!!")))
-                .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void rejectsADuplicateId() {
-        service.create(createRequest(null, "NEON NIGHTS"));
-
-        assertThatThrownBy(() -> service.create(createRequest(null, "Neon Nights")))
-                .isInstanceOf(TapeAlreadyExistsException.class);
+        assertThat(second.id()).isNotEqualTo(first.id());
+        assertThat(service.findAll()).hasSize(2);
     }
 
     @Test
     void findByIdFailsForAnUnknownTape() {
-        assertThatThrownBy(() -> service.findById("nope"))
+        assertThatThrownBy(() -> service.findById(UNKNOWN))
                 .isInstanceOf(TapeNotFoundException.class);
     }
 
     @Test
-    void replaceOverwritesEveryField() {
-        service.create(createRequest(null, "NEON NIGHTS"));
+    void replaceOverwritesEveryFieldButTheId() {
+        Tape created = service.create(createRequest("NEON NIGHTS"));
 
-        Tape replaced = service.replace("neon-nights", new UpdateTapeRequest(
-                null, "NEON DAYS", null, "1991", "Drama", "1h 02min", "PG",
+        Tape replaced = service.replace(created.id(), new UpdateTapeRequest(
+                "NEON DAYS", null, "1991", "Drama", "1h 02min", "PG",
                 "Rewritten.", COLORS, TapePattern.WAVES));
 
+        assertThat(replaced.id()).isEqualTo(created.id());
         assertThat(replaced.title()).isEqualTo("NEON DAYS");
         assertThat(replaced.subtitle()).isNull();
         assertThat(replaced.pattern()).isEqualTo(TapePattern.WAVES);
-        assertThat(replaced.id()).isEqualTo("neon-nights");
     }
 
     @Test
-    void replaceRejectsAMismatchedBodyId() {
-        service.create(createRequest(null, "NEON NIGHTS"));
+    void aRetitleKeepsTheId() {
+        Tape created = service.create(createRequest("NEON NIGHTS"));
 
-        assertThatThrownBy(() -> service.replace("neon-nights", new UpdateTapeRequest(
-                "other-id", "NEON DAYS", null, "1991", "Drama", "1h 02min", "PG",
-                "Rewritten.", COLORS, TapePattern.WAVES)))
-                .isInstanceOf(IllegalArgumentException.class);
+        Tape patched = service.patch(created.id(), new PatchTapeRequest(
+                "NEON LIGHTS", null, null, null, null, null, null, null, null));
+
+        assertThat(patched.id()).isEqualTo(created.id());
+        assertThat(service.findById(created.id()).title()).isEqualTo("NEON LIGHTS");
     }
 
     @Test
     void replaceFailsForAnUnknownTape() {
-        assertThatThrownBy(() -> service.replace("nope", new UpdateTapeRequest(
-                null, "NEON DAYS", null, "1991", "Drama", "1h 02min", "PG",
+        assertThatThrownBy(() -> service.replace(UNKNOWN, new UpdateTapeRequest(
+                "NEON DAYS", null, "1991", "Drama", "1h 02min", "PG",
                 "Rewritten.", COLORS, TapePattern.WAVES)))
                 .isInstanceOf(TapeNotFoundException.class);
     }
 
     @Test
     void patchOnlyAppliesTheFieldsThatWereSent() {
-        Tape original = service.create(createRequest(null, "NEON NIGHTS"));
+        Tape original = service.create(createRequest("NEON NIGHTS"));
 
-        Tape patched = service.patch("neon-nights", new PatchTapeRequest(
+        Tape patched = service.patch(original.id(), new PatchTapeRequest(
                 null, null, null, null, null, "PG-13", null, null, null));
 
         assertThat(patched.rating()).isEqualTo("PG-13");
@@ -110,18 +96,18 @@ class TapeServiceTest {
 
     @Test
     void deleteRemovesTheTapeAndThenFails() {
-        service.create(createRequest(null, "NEON NIGHTS"));
+        Tape created = service.create(createRequest("NEON NIGHTS"));
 
-        service.delete("neon-nights");
+        service.delete(created.id());
 
         assertThat(service.findAll()).isEmpty();
-        assertThatThrownBy(() -> service.delete("neon-nights"))
+        assertThatThrownBy(() -> service.delete(created.id()))
                 .isInstanceOf(TapeNotFoundException.class);
     }
 
-    private static CreateTapeRequest createRequest(String id, String title) {
+    private static CreateTapeRequest createRequest(String title) {
         Tape template = TapeFixtures.neonNights();
-        return new CreateTapeRequest(id, title, template.subtitle(), template.year(),
+        return new CreateTapeRequest(title, template.subtitle(), template.year(),
                 template.genre(), template.duration(), template.rating(), template.description(),
                 COLORS, template.pattern());
     }

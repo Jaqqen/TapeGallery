@@ -16,9 +16,7 @@ import java.util.UUID;
  * The tapes table. Package-private on purpose: nothing outside this package sees a
  * JPA type, which is what keeps the {@link TapeRepository} seam swappable.
  *
- * <p>{@code id} is a surrogate key that never changes. The domain's {@code Tape.id}
- * is the slug, which is derived from the title and therefore moves when a tape is
- * retitled - not something a cross-store reference can rely on.
+ * <p>{@code id} is the identity and never changes once a row exists.
  */
 @Entity
 @Table(name = "tapes")
@@ -27,9 +25,6 @@ public class TapeEntity {
     @Id
     @Getter
     private UUID id;
-
-    @Column(nullable = false, unique = true)
-    private String slug;
 
     @Column(nullable = false)
     private String title;
@@ -60,16 +55,15 @@ public class TapeEntity {
     protected TapeEntity() {
     }
 
-    public static TapeEntity fromDomain(UUID id, Tape tape) {
+    public static TapeEntity fromDomain(Tape tape) {
         TapeEntity entity = new TapeEntity();
-        entity.id = id;
+        entity.id = tape.id();
         entity.apply(tape);
         return entity;
     }
 
-    /** Overwrites every mutable field from the given tape, keeping the surrogate id. */
+    /** Overwrites every mutable field from the given tape, keeping the id. */
     public void apply(Tape tape) {
-        this.slug = tape.id();
         this.title = tape.title();
         this.subtitle = tape.subtitle();
         this.year = tape.year();
@@ -82,7 +76,7 @@ public class TapeEntity {
     }
 
     public Tape toDomain() {
-        return new Tape(slug, title, subtitle, year, genre, duration, rating, description,
+        return new Tape(id, title, subtitle, year, genre, duration, rating, description,
                 colors.toDomain(), pattern);
     }
 }

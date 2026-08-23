@@ -1,12 +1,10 @@
 -- The tapes catalogue.
 --
--- id is a surrogate key that never changes. The public identifier is the slug,
--- which TapeService derives from the title, so it moves when a tape is retitled;
--- anything that references a tape from elsewhere must key off id instead.
+-- id is the identity: minted once, never changed, and what the API's URLs carry.
+-- It is the only handle on a tape - a title is free to change and free to repeat.
 CREATE TABLE tapes
 (
     id              UUID         NOT NULL,
-    slug            VARCHAR(255) NOT NULL,
     title           VARCHAR(255) NOT NULL,
     subtitle        VARCHAR(255),
     year            VARCHAR(32)  NOT NULL,
@@ -19,11 +17,11 @@ CREATE TABLE tapes
     color_accent    VARCHAR(9)   NOT NULL,
     color_label     VARCHAR(9)   NOT NULL,
     pattern         VARCHAR(32)  NOT NULL,
-    CONSTRAINT pk_tapes PRIMARY KEY (id),
-    CONSTRAINT uq_tapes_slug UNIQUE (slug)
+    CONSTRAINT pk_tapes PRIMARY KEY (id)
 );
 
 -- year and rating are free-form strings in the web-portal's Tape interface and in
 -- the Tape record, so they stay strings here rather than being parsed into numbers.
 
+COMMENT ON COLUMN tapes.id IS 'Identity: minted once, never changes, and what the API URLs carry';
 COMMENT ON COLUMN tapes.pattern IS 'Kebab-case wire value of TapePattern, e.g. retro-blocks';

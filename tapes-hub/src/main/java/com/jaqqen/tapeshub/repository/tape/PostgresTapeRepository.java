@@ -26,38 +26,39 @@ public class PostgresTapeRepository implements TapeRepository {
     @Override
     @Transactional(readOnly = true)
     public List<Tape> findAll() {
-        return tapes.findAllByOrderBySlugAsc().stream().map(TapeEntity::toDomain).toList();
+        return tapes.findAllByOrderByTitleAsc().stream().map(TapeEntity::toDomain).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<Tape> findById(String id) {
-        return tapes.findBySlug(id).map(TapeEntity::toDomain);
+    public Optional<Tape> findById(UUID id) {
+        return tapes.findById(id).map(TapeEntity::toDomain);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public boolean existsById(String id) {
-        return tapes.existsBySlug(id);
+    public boolean existsById(UUID id) {
+        return tapes.existsById(id);
     }
 
-    /**
-     * Upserts on the slug. An existing tape is updated in place so that its surrogate
-     * id survives - {@code replace} and {@code patch} both round-trip through here.
-     */
+    /** Upserts on the id, so an existing tape is updated in place rather than duplicated. */
     @Override
     public Tape save(Tape tape) {
-        TapeEntity entity = tapes.findBySlug(tape.id())
+        TapeEntity entity = tapes.findById(tape.id())
                 .map(existing -> {
                     existing.apply(tape);
                     return existing;
                 })
-                .orElseGet(() -> TapeEntity.fromDomain(UUID.randomUUID(), tape));
+                .orElseGet(() -> TapeEntity.fromDomain(tape));
         return tapes.save(entity).toDomain();
     }
 
     @Override
-    public boolean deleteById(String id) {
-        return tapes.deleteBySlug(id) > 0;
+    public boolean deleteById(UUID id) {
+        if (!tapes.existsById(id)) {
+            return false;
+        }
+        tapes.deleteById(id);
+        return true;
     }
 }

@@ -7,31 +7,32 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Test fake for {@link TapeRepository}: keeps tapes in a map, mirroring the semantics
- * of the Postgres implementation. Lets the service tests exercise slug derivation and
- * patch merging without starting a database.
+ * Test fake for {@link TapeRepository}: keeps tapes in a map keyed by id, mirroring the
+ * semantics of the Postgres implementation. Lets the service tests exercise patch
+ * merging without starting a database.
  */
 public class InMemoryTapeRepository implements TapeRepository {
 
-    private final Map<String, Tape> tapes = new ConcurrentHashMap<>();
+    private final Map<UUID, Tape> tapes = new ConcurrentHashMap<>();
 
     @Override
     public List<Tape> findAll() {
         return tapes.values().stream()
-                .sorted(Comparator.comparing(Tape::id))
+                .sorted(Comparator.comparing(Tape::title))
                 .toList();
     }
 
     @Override
-    public Optional<Tape> findById(String id) {
+    public Optional<Tape> findById(UUID id) {
         return Optional.ofNullable(tapes.get(id));
     }
 
     @Override
-    public boolean existsById(String id) {
+    public boolean existsById(UUID id) {
         return tapes.containsKey(id);
     }
 
@@ -42,7 +43,7 @@ public class InMemoryTapeRepository implements TapeRepository {
     }
 
     @Override
-    public boolean deleteById(String id) {
+    public boolean deleteById(UUID id) {
         return tapes.remove(id) != null;
     }
 }
