@@ -23,6 +23,10 @@ ext {
     set('springCloudVersion', "2025.1.2")
 }
 
+configurations {
+    mockitoAgent
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
@@ -48,6 +52,7 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
+    mockitoAgent('org.mockito:mockito-core') { transitive = false }
 }
 
 dependencyManagement {
@@ -59,10 +64,9 @@ dependencyManagement {
 contracts {
 }
 
-tasks.named('contractTest') {
+// Hand Mockito's inline mock maker its agent at JVM startup, so it does not
+// self-attach one at runtime - a fallback that future JDKs will disallow.
+tasks.withType(Test).configureEach {
     useJUnitPlatform()
-}
-
-tasks.named('test') {
-    useJUnitPlatform()
+    jvmArgs "-javaagent:${configurations.mockitoAgent.asPath}"
 }
