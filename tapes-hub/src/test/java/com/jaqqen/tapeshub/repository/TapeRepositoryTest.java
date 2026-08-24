@@ -48,7 +48,7 @@ class TapeRepositoryTest {
         repository.save(entity);
         flush();
 
-        assertThat(repository.findById(tape.id())).contains(entity);
+        assertThat(repository.findById(tape.id())).map(TapeEntity::toDomain).contains(tape);
         assertThat(repository.existsById(tape.id())).isTrue();
     }
 
@@ -60,7 +60,7 @@ class TapeRepositoryTest {
         repository.save(entity);
         flush();
 
-        assertThat(repository.findById(noSubtitle.id())).contains(entity);
+        assertThat(repository.findById(noSubtitle.id())).map(TapeEntity::toDomain).contains(noSubtitle);
     }
 
     /** The reason the upsert keys off the id: an edit must move the row, not add one. */
@@ -78,7 +78,7 @@ class TapeRepositoryTest {
         repository.save(retitledEntity);
         flush();
 
-        assertThat(repository.findAll()).containsExactly(retitledEntity);
+        assertThat(repository.findAll()).map(TapeEntity::toDomain).containsExactly(retitled);
         assertThat(countRows()).isOne();
     }
 
@@ -112,7 +112,7 @@ class TapeRepositoryTest {
         repository.save(entity3);
         flush();
 
-        assertThat(repository.findAll())
+        assertThat(repository.findAllByOrderByTitleAsc())
                 .map(TapeEntity::toDomain)
                 .extracting(Tape::title)
                 .containsExactly("CHROME HORIZON", "NEON NIGHTS", "VELVET THUNDER");

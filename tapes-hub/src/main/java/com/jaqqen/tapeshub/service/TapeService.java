@@ -23,7 +23,7 @@ public class TapeService {
     }
 
     public List<Tape> findAll() {
-        return repository.findAll().stream()
+        return repository.findAllByOrderByTitleAsc().stream()
             .map(TapeEntity::toDomain)
             .toList();
     }

@@ -23,6 +23,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,11 +46,11 @@ class TapeServiceTest {
 
     @Test
     void mintsAnIdOnCreate() {
-        when(tapeRepository.save(Mockito.any())).thenReturn(testTape);
         Tape created = service.create(createRequest("NEON NIGHTS"));
 
         assertThat(created.id()).isNotNull();
         assertThat(created.title()).isEqualTo("NEON NIGHTS");
+        verify(tapeRepository).save(Mockito.any(TapeEntity.class));
     }
 
     @Test
@@ -83,7 +84,9 @@ class TapeServiceTest {
 
     @Test
     void patchOnlyAppliesTheFieldsThatWereSent() {
-        Tape original = service.create(createRequest("NEON NIGHTS"));
+        Tape original = testTape;
+        when(tapeRepository.findById(original.id()))
+                .thenReturn(Optional.of(TapeEntity.fromDomain(original)));
 
         Tape patched = service.patch(original.id(), new PatchTapeRequest(
                 null, null, null, null, null, "PG-13", null, null, null));
@@ -97,12 +100,13 @@ class TapeServiceTest {
 
     @Test
     void deleteRemovesTheTapeAndThenFails() {
-        Tape created = service.create(createRequest("NEON NIGHTS"));
+        UUID id = testTape.id();
+        when(tapeRepository.removeById(id)).thenReturn(true, false);
 
-        service.delete(created.id());
+        service.delete(id);
 
         assertThat(service.findAll()).isEmpty();
-        assertThatThrownBy(() -> service.delete(created.id()))
+        assertThatThrownBy(() -> service.delete(id))
                 .isInstanceOf(TapeNotFoundException.class);
     }
 

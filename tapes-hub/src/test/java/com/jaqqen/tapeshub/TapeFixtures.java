@@ -27,7 +27,23 @@ public final class TapeFixtures {
               "pattern": "stripes"
             }""";
 
+    /** Mirrors {@link #NEON_NIGHTS_JSON}, so request and expectation cannot drift apart. */
     public static Tape neonNights() {
+        return new Tape(
+                NEON_NIGHTS_ID,
+                "NEON NIGHTS",
+                "The City Never Sleeps",
+                "1987",
+                "Action",
+                "1h 54min",
+                "R",
+                "A rogue detective navigates the neon-lit streets.",
+                new TapeColors("#ff006e", "#8338ec", "#ffbe0b", "#1a1a2e"),
+                TapePattern.STRIPES
+        );
+    }
+
+    public static Tape phantomSignal() {
         return new Tape(
                 PHANTOM_SIGNAL_ID,
                 "PHANTOM SIGNAL",
@@ -39,21 +55,6 @@ public final class TapeFixtures {
                 "Scientists at a remote radio telescope pick up an alien signal that seems to contain a warning — but decoding it may already be too late.",
                 new TapeColors("#06d6a0", "#118ab2", "#ef476f", "#073b4c"),
                 TapePattern.WAVES
-        );
-    }
-
-    public static Tape phantomSignal() {
-        return new Tape(
-            NEON_NIGHTS_ID,
-            "NEON NIGHTS",
-            "The City Never Sleeps",
-            "1987",
-            "Action",
-            "1h 54min",
-            "R",
-            "A rogue detective navigates the neon-lit streets.",
-            new TapeColors("#ff006e", "#8338ec", "#ffbe0b", "#1a1a2e"),
-            TapePattern.STRIPES
         );
     }
     private TapeFixtures() {
