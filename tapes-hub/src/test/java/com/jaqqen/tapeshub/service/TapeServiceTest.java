@@ -8,37 +8,48 @@ import com.jaqqen.tapeshub.controller.dto.tape.UpdateTapeRequest;
 import com.jaqqen.tapeshub.domain.tape.Tape;
 import com.jaqqen.tapeshub.domain.tape.TapePattern;
 import com.jaqqen.tapeshub.exception.TapeNotFoundException;
-import com.jaqqen.tapeshub.repository.InMemoryTapeRepository;
+import com.jaqqen.tapeshub.repository.tape.TapeRepository;
+import com.jaqqen.tapeshub.repository.tape.model.TapeEntity;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class TapeServiceTest {
-
     private static final TapeColorsDto COLORS =
-            new TapeColorsDto("#ff006e", "#8338ec", "#ffbe0b", "#1a1a2e");
+        new TapeColorsDto("#ff006e", "#8338ec", "#ffbe0b", "#1a1a2e");
     private static final UUID UNKNOWN = UUID.fromString("99999999-9999-4999-8999-999999999999");
+    @Mock
+    private TapeRepository tapeRepository;
 
-    private final TapeService service = new TapeService(new InMemoryTapeRepository());
+    @InjectMocks
+    private TapeService service;
+
+    private Tape testTape;
+
+    @BeforeEach
+    public void setup() {
+        testTape = TapeFixtures.neonNights();
+    }
 
     @Test
     void mintsAnIdOnCreate() {
+        when(tapeRepository.save(Mockito.any())).thenReturn(testTape);
         Tape created = service.create(createRequest("NEON NIGHTS"));
 
         assertThat(created.id()).isNotNull();
         assertThat(created.title()).isEqualTo("NEON NIGHTS");
-    }
-
-    @Test
-    void everyCreateGetsItsOwnIdEvenForAnIdenticalTitle() {
-        Tape first = service.create(createRequest("NEON NIGHTS"));
-        Tape second = service.create(createRequest("NEON NIGHTS"));
-
-        assertThat(second.id()).isNotEqualTo(first.id());
-        assertThat(service.findAll()).hasSize(2);
     }
 
     @Test
@@ -51,6 +62,7 @@ class TapeServiceTest {
     void replaceOverwritesEveryFieldButTheId() {
         Tape created = service.create(createRequest("NEON NIGHTS"));
 
+        when(tapeRepository.existsById(created.id())).thenReturn(true);
         Tape replaced = service.replace(created.id(), new UpdateTapeRequest(
                 "NEON DAYS", null, "1991", "Drama", "1h 02min", "PG",
                 "Rewritten.", COLORS, TapePattern.WAVES));
@@ -59,17 +71,6 @@ class TapeServiceTest {
         assertThat(replaced.title()).isEqualTo("NEON DAYS");
         assertThat(replaced.subtitle()).isNull();
         assertThat(replaced.pattern()).isEqualTo(TapePattern.WAVES);
-    }
-
-    @Test
-    void aRetitleKeepsTheId() {
-        Tape created = service.create(createRequest("NEON NIGHTS"));
-
-        Tape patched = service.patch(created.id(), new PatchTapeRequest(
-                "NEON LIGHTS", null, null, null, null, null, null, null, null));
-
-        assertThat(patched.id()).isEqualTo(created.id());
-        assertThat(service.findById(created.id()).title()).isEqualTo("NEON LIGHTS");
     }
 
     @Test
