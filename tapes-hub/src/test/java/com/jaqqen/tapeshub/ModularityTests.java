@@ -37,7 +37,7 @@ public class ModularityTests {
         JavaClasses classes = new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
             .importPackages(TAPE_PACKAGE);
 
-        JMoleculesArchitectureRules.ensureOnionSimple().check(classes);
+        JMoleculesArchitectureRules.ensureOnionClassical().check(classes);
     }
 
 }
