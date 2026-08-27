@@ -1,16 +1,12 @@
 package com.jaqqen.tapeshub.tape.app;
 
-import com.jaqqen.tapeshub.tape.domain.Tape;
-import com.jaqqen.tapeshub.tape.domain.TapeDuration;
-import com.jaqqen.tapeshub.tape.domain.TapeGenreRepository;
-import com.jaqqen.tapeshub.tape.domain.TapeId;
-import com.jaqqen.tapeshub.tape.domain.TapeRepository;
-import com.jaqqen.tapeshub.tape.domain.TapeTitle;
-import com.jaqqen.tapeshub.tape.presentation.dto.CreateTapeRequest;
-import com.jaqqen.tapeshub.tape.presentation.dto.PatchTapeRequest;
-import com.jaqqen.tapeshub.tape.presentation.dto.TapeColorsDto;
-import com.jaqqen.tapeshub.tape.presentation.dto.UpdateTapeRequest;
-import com.jaqqen.tapeshub.tape.presentation.exception.TapeNotFoundRuntimeException;
+import com.jaqqen.tapeshub.tape.app.dto.CreateTapeRequest;
+import com.jaqqen.tapeshub.tape.app.dto.PatchTapeRequest;
+import com.jaqqen.tapeshub.tape.app.dto.TapeColorsDto;
+import com.jaqqen.tapeshub.tape.app.dto.UpdateTapeRequest;
+import com.jaqqen.tapeshub.tape.app.exception.TapeNotFoundRuntimeException;
+import com.jaqqen.tapeshub.tape.domain.*;
+import com.jaqqen.tapeshub.tape.domain.exception.TapeNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -90,7 +86,7 @@ public class TapeService {
     private Tape getOrThrow(UUID id) {
         try {
             return repository.findById(id);
-        } catch (com.jaqqen.tapeshub.tape.domain.exception.TapeNotFoundException e) {
+        } catch (TapeNotFoundException e) {
             throw new TapeNotFoundRuntimeException(id);
         }
     }

@@ -1,6 +1,6 @@
 package com.jaqqen.tapeshub.tape.infra;
 
-import jakarta.persistence.Embeddable;
+import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotEmpty;
@@ -8,7 +8,7 @@ import lombok.*;
 
 import java.util.UUID;
 
-@Embeddable
+@Entity
 @Getter
 @Table(name = "tape_colors")
 @AllArgsConstructor

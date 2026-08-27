@@ -1,4 +1,4 @@
-package com.jaqqen.tapeshub.tape.infra.config;
+package com.jaqqen.tapeshub.tape.presentation.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

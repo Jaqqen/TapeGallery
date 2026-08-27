@@ -1,5 +1,6 @@
 package com.jaqqen.tapeshub.tape.presentation.exception;
 
+import com.jaqqen.tapeshub.tape.app.exception.TapeNotFoundRuntimeException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;

@@ -1,4 +1,4 @@
-package com.jaqqen.tapeshub.tape.presentation.dto;
+package com.jaqqen.tapeshub.tape.app.dto;
 
 import com.jaqqen.tapeshub.tape.domain.TapeGenre;
 

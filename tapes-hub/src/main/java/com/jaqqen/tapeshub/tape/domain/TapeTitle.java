@@ -13,6 +13,6 @@ public record TapeTitle(String title, boolean subtitle) {
     }
 
     public static TapeTitle asSubtitle(String title) {
-        return new TapeTitle(title, false);
+        return new TapeTitle(title, true);
     }
 }

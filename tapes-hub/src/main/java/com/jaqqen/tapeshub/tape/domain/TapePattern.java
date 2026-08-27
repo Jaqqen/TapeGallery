@@ -1,13 +1,13 @@
 package com.jaqqen.tapeshub.tape.domain;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
+import lombok.Getter;
 
 /**
  * Sleeve pattern of a tape. The wire format is kebab-case to match the
  * {@code pattern} union in web-portal's tapes.ts, which the shelf component
  * switches on. Adding a value here means adding it there too.
  */
+@Getter
 public enum TapePattern {
 
     STRIPES("stripes"),
@@ -23,12 +23,6 @@ public enum TapePattern {
         this.value = value;
     }
 
-    @JsonValue
-    public String getValue() {
-        return value;
-    }
-
-    @JsonCreator
     public static TapePattern fromValue(String value) {
         for (TapePattern pattern : values()) {
             if (pattern.value.equals(value)) {

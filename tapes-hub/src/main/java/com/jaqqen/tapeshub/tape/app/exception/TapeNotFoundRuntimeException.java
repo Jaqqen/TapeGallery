@@ -1,4 +1,4 @@
-package com.jaqqen.tapeshub.tape.presentation.exception;
+package com.jaqqen.tapeshub.tape.app.exception;
 
 import java.util.UUID;
 

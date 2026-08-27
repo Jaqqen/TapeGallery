@@ -1,4 +1,4 @@
-package com.jaqqen.tapeshub.tape.presentation.dto;
+package com.jaqqen.tapeshub.tape.app.dto;
 
 import com.jaqqen.tapeshub.tape.domain.TapePattern;
 import jakarta.validation.Valid;
@@ -10,10 +10,11 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * Body of POST /api/tapes. Carries no identifier: the id is minted by the server.
- * {@code genre} is the id of an existing, separately-managed genre.
+ * Body of PUT /api/tapes/{id} - a full replacement, so every field is required. The
+ * tape is identified by the path alone. {@code genre} is the id of an existing,
+ * separately-managed genre.
  */
-public record CreateTapeRequest(
+public record UpdateTapeRequest(
         @NotBlank String title,
         String subtitle,
         @NotNull LocalDate releaseDate,

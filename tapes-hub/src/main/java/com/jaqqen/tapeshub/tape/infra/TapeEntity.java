@@ -1,6 +1,9 @@
 package com.jaqqen.tapeshub.tape.infra;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -22,7 +25,7 @@ public class TapeEntity {
     @ManyToOne
     private TapeGenreEntity genre;
     private int duration;
-    @Embedded
+    @ManyToOne
     private TapeColorsEntity colors;
     private String pattern;
 }

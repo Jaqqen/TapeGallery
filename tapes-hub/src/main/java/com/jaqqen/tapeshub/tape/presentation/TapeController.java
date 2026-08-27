@@ -2,10 +2,10 @@ package com.jaqqen.tapeshub.tape.presentation;
 
 import com.jaqqen.tapeshub.tape.domain.Tape;
 import com.jaqqen.tapeshub.tape.app.TapeService;
-import com.jaqqen.tapeshub.tape.presentation.dto.CreateTapeRequest;
-import com.jaqqen.tapeshub.tape.presentation.dto.PatchTapeRequest;
-import com.jaqqen.tapeshub.tape.presentation.dto.TapeResponse;
-import com.jaqqen.tapeshub.tape.presentation.dto.UpdateTapeRequest;
+import com.jaqqen.tapeshub.tape.app.dto.CreateTapeRequest;
+import com.jaqqen.tapeshub.tape.app.dto.PatchTapeRequest;
+import com.jaqqen.tapeshub.tape.app.dto.TapeResponse;
+import com.jaqqen.tapeshub.tape.app.dto.UpdateTapeRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
