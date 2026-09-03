@@ -17,7 +17,7 @@ VALUES ('8e17b20c-0e19-4c68-9eba-f5d5e9e9688d', 'Action', 'High-stakes chases, f
        ('b849e7be-8ff8-4b59-9bf6-442d6d077f0d', 'Western', 'The frontier and its outlaws.');
 
 INSERT INTO tape (id, title, subtitle, release_date, genre_id, duration,
-                  "primary", secondary, accent, label, pattern)
+                  central, secondary, accent, label, pattern)
 VALUES (gen_random_uuid(), 'NEON NIGHTS', 'The City Never Sleeps', DATE '1987-01-01',
         '8e17b20c-0e19-4c68-9eba-f5d5e9e9688d', 6840000,
         '#ff006e', '#8338ec', '#ffbe0b', '#1a1a2e', 'stripes'),

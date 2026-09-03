@@ -14,9 +14,8 @@ import lombok.Setter;
 @Setter
 class TapeColorsEmbeddable {
 
-    /** {@code primary} is a reserved SQL keyword, so the name has to stay explicitly quoted. */
-    @Column(name = "\"primary\"", nullable = false, length = 9)
-    private String primary;
+    @Column(nullable = false, length = 9)
+    private String central;
 
     @Column(nullable = false, length = 9)
     private String secondary;

@@ -36,7 +36,7 @@ final class TapeMapper {
             entity.getReleaseDate(),
             new GenreId(entity.getGenreId()),
             new TapeDuration(entity.getDuration()),
-            new Colors(colors.getPrimary(), colors.getSecondary(), colors.getAccent(), colors.getLabel()),
+            new Colors(colors.getCentral(), colors.getSecondary(), colors.getAccent(), colors.getLabel()),
             TapePattern.fromValue(entity.getPattern()));
     }
 }

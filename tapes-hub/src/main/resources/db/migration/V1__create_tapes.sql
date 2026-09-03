@@ -15,7 +15,8 @@ CREATE TABLE genre
 --
 -- The four sleeve colours live on this row rather than in a table of their own: they have no
 -- identity and no lifecycle apart from the tape, so they are a value object, not an entity.
--- "primary" is a reserved SQL keyword, so it must stay quoted everywhere.
+-- The first colour is "central" rather than "primary": the latter is a reserved SQL keyword,
+-- which forces quoting everywhere and trips up linters and static analysis.
 --
 -- genre_id is a plain foreign key, not a mapped association: it is how one aggregate refers to
 -- another. The constraint is what makes "a tape cannot exist without a genre" true in storage.
@@ -27,7 +28,7 @@ CREATE TABLE tape
     release_date DATE         NOT NULL,
     genre_id     UUID         NOT NULL,
     duration     INTEGER      NOT NULL,
-    "primary"    VARCHAR(9)   NOT NULL,
+    central      VARCHAR(9)   NOT NULL,
     secondary    VARCHAR(9)   NOT NULL,
     accent       VARCHAR(9)   NOT NULL,
     label        VARCHAR(9)   NOT NULL,
