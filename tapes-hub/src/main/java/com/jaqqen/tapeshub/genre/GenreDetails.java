@@ -1,5 +1,7 @@
 package com.jaqqen.tapeshub.genre;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.UUID;
 
 /**
@@ -9,5 +11,5 @@ import java.util.UUID;
  * boundary and the HTTP boundary, and neither consumer should have to know how a {@code Genre}
  * is built.
  */
-public record GenreDetails(UUID id, String name, String description) {
+public record GenreDetails(UUID id, String name, @Nullable String description) {
 }

@@ -9,6 +9,8 @@
  * a shared kernel, not a place to put things that have not found a module yet.
  */
 @ApplicationModule(displayName = "Shared")
+@NullMarked
 package com.jaqqen.tapeshub.shared;
 
+import org.jspecify.annotations.NullMarked;
 import org.springframework.modulith.ApplicationModule;

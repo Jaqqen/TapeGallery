@@ -7,6 +7,8 @@
  * dependency-free module in its own right.
  */
 @ApplicationModule(displayName = "Configuration")
+@NullMarked
 package com.jaqqen.tapeshub.config;
 
+import org.jspecify.annotations.NullMarked;
 import org.springframework.modulith.ApplicationModule;

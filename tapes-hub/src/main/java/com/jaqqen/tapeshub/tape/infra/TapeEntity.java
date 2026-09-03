@@ -5,6 +5,7 @@ import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.jspecify.annotations.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -34,7 +35,7 @@ class TapeEntity {
     @Column(nullable = false)
     private String title;
 
-    private String subtitle;
+    private @Nullable String subtitle;
 
     @Column(nullable = false)
     private LocalDate releaseDate;

@@ -12,6 +12,8 @@
  * {@code presentation} are internal, and {@code ModularityTests} fails the build if that is broken.
  */
 @ApplicationModule(displayName = "Genre")
+@NullMarked
 package com.jaqqen.tapeshub.genre;
 
+import org.jspecify.annotations.NullMarked;
 import org.springframework.modulith.ApplicationModule;

@@ -3,6 +3,7 @@ package com.jaqqen.tapeshub.genre.domain;
 import com.jaqqen.tapeshub.genre.GenreId;
 import lombok.Getter;
 import org.jmolecules.ddd.types.AggregateRoot;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 
@@ -18,31 +19,31 @@ public class Genre implements AggregateRoot<Genre, GenreId> {
 
     private final GenreId id;
     private GenreName name;
-    private String description;
+    private @Nullable String description;
 
-    private Genre(GenreId id, GenreName name, String description) {
+    private Genre(GenreId id, GenreName name, @Nullable String description) {
         this.id = Objects.requireNonNull(id, "genre id must not be null");
         this.name = Objects.requireNonNull(name, "genre name must not be null");
         this.description = description;
     }
 
     /** A brand-new genre. The identity is minted here, so it cannot be passed in. */
-    public static Genre create(GenreName name, String description) {
+    public static Genre create(GenreName name, @Nullable String description) {
         return new Genre(GenreId.newId(), name, description);
     }
 
     /** Rebuilds a genre that already exists, carrying its persisted identity. */
-    public static Genre existing(GenreId id, GenreName name, String description) {
+    public static Genre existing(GenreId id, GenreName name, @Nullable String description) {
         return new Genre(id, name, description);
     }
 
     public Genre rename(GenreName name) {
-        this.name = Objects.requireNonNull(name, "genre name must not be null");
+        this.name = name;
         return this;
     }
 
     /** The description is optional; {@code null} clears it. */
-    public Genre describe(String description) {
+    public Genre describe(@Nullable String description) {
         this.description = description;
         return this;
     }

@@ -51,7 +51,7 @@ public class TapeService {
 
         // One lookup for the whole page rather than one per tape.
         Map<GenreId, GenreDetails> byId = genres.findAllByIds(referenced);
-        return all.stream().map(tape -> TapeResponse.from(tape, byId.get(tape.getGenre()))).toList();
+        return all.stream().map(tape -> TapeResponse.from(tape, resolve(byId, tape.getGenre()))).toList();
     }
 
     @Transactional(readOnly = true)
@@ -133,5 +133,19 @@ public class TapeService {
 
     private GenreDetails resolve(GenreId id) {
         return genres.findById(id).orElseThrow(() -> new UnknownGenreException(id));
+    }
+
+    /**
+     * The batch equivalent of {@link #resolve(GenreId)}. A tape referencing a genre the lookup did
+     * not return means the two modules disagree, which is the same failure {@code resolve} reports
+     * one tape at a time - so it is reported the same way rather than surfacing as an NPE further
+     * down.
+     */
+    private static GenreDetails resolve(Map<GenreId, GenreDetails> byId, GenreId id) {
+        GenreDetails genre = byId.get(id);
+        if (genre == null) {
+            throw new UnknownGenreException(id);
+        }
+        return genre;
     }
 }

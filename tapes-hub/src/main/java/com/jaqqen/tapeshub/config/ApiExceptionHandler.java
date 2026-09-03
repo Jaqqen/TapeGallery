@@ -1,6 +1,7 @@
 package com.jaqqen.tapeshub.config;
 
 import com.jaqqen.tapeshub.shared.InvalidIdentifierException;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -25,19 +26,19 @@ public class ApiExceptionHandler {
     /** Thrown by the value objects when a payload passes bean validation but violates an invariant. */
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
-        return problem(HttpStatus.BAD_REQUEST, "Invalid request", ex.getMessage());
+        return problem("Invalid request", ex.getMessage());
     }
 
     /** Thrown by TapeId/GenreId when constructed without a UUID - a missing identifier, not a malformed one. */
     @ExceptionHandler(InvalidIdentifierException.class)
     public ProblemDetail handleInvalidIdentifier(InvalidIdentifierException ex) {
-        return problem(HttpStatus.BAD_REQUEST, "Invalid identifier", ex.getMessage());
+        return problem("Invalid identifier", ex.getMessage());
     }
 
     /** A path segment that is not a UUID, e.g. GET /api/tapes/neon-nights. */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        return problem(HttpStatus.BAD_REQUEST, "Invalid request",
+        return problem("Invalid request",
             "'" + ex.getValue() + "' is not a valid identifier");
     }
 
@@ -47,7 +48,7 @@ public class ApiExceptionHandler {
             .map(error -> error.getField() + " " + error.getDefaultMessage())
             .sorted()
             .toList();
-        ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "Validation failed",
+        ProblemDetail problem = problem("Validation failed",
             "The request body is not valid");
         problem.setProperty("errors", errors);
         return problem;
@@ -56,11 +57,11 @@ public class ApiExceptionHandler {
     /** Malformed JSON, or an unknown value for a closed field such as {@code pattern}. */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ProblemDetail handleUnreadable(HttpMessageNotReadableException ex) {
-        return problem(HttpStatus.BAD_REQUEST, "Malformed request body", ex.getMostSpecificCause().getMessage());
+        return problem("Malformed request body", ex.getMostSpecificCause().getMessage());
     }
 
-    private static ProblemDetail problem(HttpStatus status, String title, String detail) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
+    private static ProblemDetail problem(String title, @Nullable String detail) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
         problem.setTitle(title);
         return problem;
     }

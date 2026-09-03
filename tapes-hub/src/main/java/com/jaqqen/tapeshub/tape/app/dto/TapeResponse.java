@@ -3,6 +3,7 @@ package com.jaqqen.tapeshub.tape.app.dto;
 import com.jaqqen.tapeshub.genre.GenreDetails;
 import com.jaqqen.tapeshub.tape.domain.Tape;
 import com.jaqqen.tapeshub.tape.domain.TapePattern;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -17,7 +18,7 @@ import java.util.UUID;
 public record TapeResponse(
     UUID id,
     String title,
-    String subtitle,
+    @Nullable String subtitle,
     LocalDate releaseDate,
     GenreDetails genre,
     int duration,

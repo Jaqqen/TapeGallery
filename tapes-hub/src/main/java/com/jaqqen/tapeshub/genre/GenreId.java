@@ -1,6 +1,5 @@
 package com.jaqqen.tapeshub.genre;
 
-import com.jaqqen.tapeshub.shared.InvalidIdentifierException;
 import org.jmolecules.ddd.types.Identifier;
 
 import java.util.UUID;
@@ -13,18 +12,11 @@ import java.util.UUID;
  */
 public record GenreId(UUID value) implements Identifier {
 
-    public GenreId {
-        if (value == null) {
-            throw new InvalidIdentifierException("genre id");
-        }
-    }
-
     public static GenreId newId() {
         return new GenreId(UUID.randomUUID());
     }
 
     @Override
-    @SuppressWarnings("NullableProblems")
     public String toString() {
         return value.toString();
     }

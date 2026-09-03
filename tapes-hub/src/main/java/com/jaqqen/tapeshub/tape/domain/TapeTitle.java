@@ -1,6 +1,7 @@
 package com.jaqqen.tapeshub.tape.domain;
 
 import org.jmolecules.ddd.annotation.ValueObject;
+import org.jspecify.annotations.Nullable;
 import org.springframework.util.Assert;
 
 /** A tape's title, or its optional subtitle - the same rules apply to both. */
@@ -20,7 +21,7 @@ public record TapeTitle(String value) {
      * For the subtitle, which a tape may simply not have. Blank counts as absent, so an empty
      * string from a request body does not become a blank subtitle.
      */
-    public static TapeTitle ofNullable(String value) {
+    public static @Nullable TapeTitle ofNullable(@Nullable String value) {
         return value == null || value.isBlank() ? null : new TapeTitle(value);
     }
 
