@@ -1,34 +1,106 @@
 package com.jaqqen.tapeshub.tape.domain;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import com.jaqqen.tapeshub.genre.GenreId;
 import lombok.Getter;
+import org.jmolecules.ddd.types.AggregateRoot;
 
 import java.time.LocalDate;
+import java.util.Objects;
 
-@Builder(builderClassName = "Builder")
-@AllArgsConstructor
+/**
+ * A tape - audio or video - and the aggregate root of this module.
+ *
+ * <p>It holds a {@link GenreId}, not a genre. An audio or video always has a genre, and the
+ * {@code Objects.requireNonNull} below is where that rule lives: no code path produces a tape
+ * without one. That the id points at a genre which actually exists is checked one layer out, by
+ * {@code TapeService}, since only the application ring may talk to another module.
+ *
+ * <p>Built through {@link #create} - which mints the identity - or {@link #existing}, which rebuilds
+ * one the database already holds. Changes go through the named operations below rather than
+ * setters, so every transition is one the aggregate agreed to.
+ */
 @Getter
-public class Tape {
-    private TapeId id;
+public class Tape implements AggregateRoot<Tape, TapeId> {
+
+    private final TapeId id;
     private TapeTitle title;
+    /** Optional: plenty of tapes have no subtitle. */
     private TapeTitle subtitle;
     private LocalDate releaseDate;
-    private TapeGenre genre;
+    private GenreId genre;
     private TapeDuration duration;
-    private TapeColors colors;
+    private Colors colors;
     private TapePattern pattern;
 
-    public Tape(TapeTitle title, TapeTitle subtitle, LocalDate releaseDate, TapeGenre genre, TapeDuration duration, TapeColors colors, TapePattern pattern) {
-        this.id = new TapeId();
-        this.title = title;
+    private Tape(TapeId id, TapeTitle title, TapeTitle subtitle, LocalDate releaseDate, GenreId genre,
+                 TapeDuration duration, Colors colors, TapePattern pattern) {
+        this.id = Objects.requireNonNull(id, "tape id must not be null");
+        this.title = Objects.requireNonNull(title, "title must not be null");
         this.subtitle = subtitle;
-        this.releaseDate = releaseDate;
-        this.genre = genre;
-        this.duration = duration;
-        this.colors = colors;
-        this.pattern = pattern;
+        this.releaseDate = Objects.requireNonNull(releaseDate, "release date must not be null");
+        this.genre = Objects.requireNonNull(genre, "a tape must have a genre");
+        this.duration = Objects.requireNonNull(duration, "duration must not be null");
+        this.colors = Objects.requireNonNull(colors, "colors must not be null");
+        this.pattern = Objects.requireNonNull(pattern, "pattern must not be null");
     }
 
+    /** A brand-new tape. The identity is minted here, so it cannot be passed in. */
+    public static Tape create(TapeTitle title, TapeTitle subtitle, LocalDate releaseDate, GenreId genre,
+                              TapeDuration duration, Colors colors, TapePattern pattern) {
+        return new Tape(TapeId.newId(), title, subtitle, releaseDate, genre, duration, colors, pattern);
+    }
 
+    /** Rebuilds a tape that already exists, carrying its persisted identity. */
+    public static Tape existing(TapeId id, TapeTitle title, TapeTitle subtitle, LocalDate releaseDate,
+                                GenreId genre, TapeDuration duration, Colors colors, TapePattern pattern) {
+        return new Tape(id, title, subtitle, releaseDate, genre, duration, colors, pattern);
+    }
+
+    public Tape rename(TapeTitle title) {
+        this.title = Objects.requireNonNull(title, "title must not be null");
+        return this;
+    }
+
+    /** {@code null} removes the subtitle. */
+    public Tape resubtitle(TapeTitle subtitle) {
+        this.subtitle = subtitle;
+        return this;
+    }
+
+    public Tape releasedOn(LocalDate releaseDate) {
+        this.releaseDate = Objects.requireNonNull(releaseDate, "release date must not be null");
+        return this;
+    }
+
+    public Tape reclassify(GenreId genre) {
+        this.genre = Objects.requireNonNull(genre, "a tape must have a genre");
+        return this;
+    }
+
+    public Tape runsFor(TapeDuration duration) {
+        this.duration = Objects.requireNonNull(duration, "duration must not be null");
+        return this;
+    }
+
+    public Tape recolour(Colors colors) {
+        this.colors = Objects.requireNonNull(colors, "colors must not be null");
+        return this;
+    }
+
+    public Tape restyle(TapePattern pattern) {
+        this.pattern = Objects.requireNonNull(pattern, "pattern must not be null");
+        return this;
+    }
+
+    /** Every mutable field at once, for a PUT. The identity is untouched - that is what PUT means here. */
+    public Tape replaceWith(TapeTitle title, TapeTitle subtitle, LocalDate releaseDate, GenreId genre,
+                            TapeDuration duration, Colors colors, TapePattern pattern) {
+        return rename(title)
+            .resubtitle(subtitle)
+            .releasedOn(releaseDate)
+            .reclassify(genre)
+            .runsFor(duration)
+            .recolour(colors)
+            .restyle(pattern);
+    }
 }

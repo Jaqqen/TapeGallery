@@ -1,14 +1,12 @@
-package com.jaqqen.tapeshub.tape.presentation;
+package com.jaqqen.tapeshub.genre.presentation;
 
-import com.jaqqen.tapeshub.tape.app.TapeService;
-import com.jaqqen.tapeshub.tape.app.dto.PatchTapeRequest;
-import com.jaqqen.tapeshub.tape.app.dto.TapeRequest;
-import com.jaqqen.tapeshub.tape.app.dto.TapeResponse;
+import com.jaqqen.tapeshub.genre.GenreDetails;
+import com.jaqqen.tapeshub.genre.app.GenreService;
+import com.jaqqen.tapeshub.genre.app.dto.GenreRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -21,46 +19,41 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * HTTP in, {@link TapeResponse} out. All of it delegates: the controller decides status codes and
- * nothing else.
+ * Genres are their own resource. A tape only ever points at one of these by id, which is why the
+ * tape endpoints have no way to create a genre as a side effect.
  */
 @RestController
-@RequestMapping("/api/tapes")
-public class TapeController {
+@RequestMapping("/api/genres")
+public class GenreController {
 
-    private final TapeService service;
+    private final GenreService service;
 
-    public TapeController(TapeService service) {
+    public GenreController(GenreService service) {
         this.service = service;
     }
 
     @GetMapping
-    public List<TapeResponse> list() {
+    public List<GenreDetails> list() {
         return service.list();
     }
 
     @GetMapping("/{id}")
-    public TapeResponse get(@PathVariable UUID id) {
+    public GenreDetails get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    public ResponseEntity<TapeResponse> create(@Valid @RequestBody TapeRequest request,
+    public ResponseEntity<GenreDetails> create(@Valid @RequestBody GenreRequest request,
                                                UriComponentsBuilder uriBuilder) {
-        TapeResponse created = service.create(request);
+        GenreDetails created = service.create(request);
         return ResponseEntity
-            .created(uriBuilder.path("/api/tapes/{id}").build(created.id()))
+            .created(uriBuilder.path("/api/genres/{id}").build(created.id()))
             .body(created);
     }
 
     @PutMapping("/{id}")
-    public TapeResponse replace(@PathVariable UUID id, @Valid @RequestBody TapeRequest request) {
+    public GenreDetails replace(@PathVariable UUID id, @Valid @RequestBody GenreRequest request) {
         return service.replace(id, request);
-    }
-
-    @PatchMapping("/{id}")
-    public TapeResponse patch(@PathVariable UUID id, @Valid @RequestBody PatchTapeRequest request) {
-        return service.patch(id, request);
     }
 
     @DeleteMapping("/{id}")

@@ -1,101 +1,137 @@
 package com.jaqqen.tapeshub.tape.app;
 
-import com.jaqqen.tapeshub.tape.app.dto.CreateTapeRequest;
+import com.jaqqen.tapeshub.genre.GenreDetails;
+import com.jaqqen.tapeshub.genre.GenreId;
+import com.jaqqen.tapeshub.genre.Genres;
 import com.jaqqen.tapeshub.tape.app.dto.PatchTapeRequest;
-import com.jaqqen.tapeshub.tape.app.dto.TapeColorsDto;
-import com.jaqqen.tapeshub.tape.app.dto.UpdateTapeRequest;
-import com.jaqqen.tapeshub.tape.app.exception.TapeNotFoundRuntimeException;
-import com.jaqqen.tapeshub.tape.domain.*;
-import com.jaqqen.tapeshub.tape.domain.exception.TapeNotFoundException;
+import com.jaqqen.tapeshub.tape.app.dto.TapeRequest;
+import com.jaqqen.tapeshub.tape.app.dto.TapeResponse;
+import com.jaqqen.tapeshub.tape.domain.Tape;
+import com.jaqqen.tapeshub.tape.domain.TapeDuration;
+import com.jaqqen.tapeshub.tape.domain.TapeId;
+import com.jaqqen.tapeshub.tape.domain.TapeNotFoundException;
+import com.jaqqen.tapeshub.tape.domain.TapeRepository;
+import com.jaqqen.tapeshub.tape.domain.TapeTitle;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+/**
+ * The tape module's only application service: it owns every use case the REST layer offers.
+ *
+ * <p>Its two collaborators are the tape repository and {@link Genres}, the narrow read-only view the
+ * genre module publishes. Every write resolves the requested genre through that port first, which is
+ * the single place enforcing "a tape cannot exist without a genre" against genres that actually
+ * exist - the aggregate can only insist that the id is present, not that it resolves.
+ */
 @Service
+@Transactional
 public class TapeService {
 
-    private final TapeRepository repository;
-    private final TapeGenreRepository genreRepository;
+    private final TapeRepository tapes;
+    private final Genres genres;
 
-    public TapeService(TapeRepository repository, TapeGenreRepository genreRepository) {
-        this.repository = repository;
-        this.genreRepository = genreRepository;
+    public TapeService(TapeRepository tapes, Genres genres) {
+        this.tapes = tapes;
+        this.genres = genres;
     }
 
-    public List<Tape> findAll() {
-        return repository.findAll();
+    @Transactional(readOnly = true)
+    public List<TapeResponse> list() {
+        List<Tape> all = tapes.findAll();
+        Set<GenreId> referenced = all.stream()
+            .map(Tape::getGenre)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        // One lookup for the whole page rather than one per tape.
+        Map<GenreId, GenreDetails> byId = genres.findAllByIds(referenced);
+        return all.stream().map(tape -> TapeResponse.from(tape, byId.get(tape.getGenre()))).toList();
     }
 
-    public Tape findById(UUID id) {
-        return getOrThrow(id);
+    @Transactional(readOnly = true)
+    public TapeResponse get(UUID id) {
+        Tape tape = load(new TapeId(id));
+        return TapeResponse.from(tape, resolve(tape.getGenre()));
     }
 
-    public Tape create(CreateTapeRequest request) {
-        Tape tape = new Tape(
+    public TapeResponse create(TapeRequest request) {
+        GenreDetails genre = resolve(new GenreId(request.genreId()));
+        Tape tape = Tape.create(
             new TapeTitle(request.title()),
-            subtitleOf(request.subtitle()),
+            TapeTitle.ofNullable(request.subtitle()),
             request.releaseDate(),
-            genreRepository.findById(request.genre()),
+            new GenreId(genre.id()),
             new TapeDuration(request.duration()),
             request.colors().toDomain(),
-            request.pattern()
-        );
-        return repository.save(tape);
+            request.pattern());
+        return TapeResponse.from(tapes.save(tape), genre);
     }
 
-    public Tape replace(UUID id, UpdateTapeRequest request) {
-        if (!repository.existsById(id)) {
-            throw new TapeNotFoundRuntimeException(id);
+    public TapeResponse replace(UUID id, TapeRequest request) {
+        GenreDetails genre = resolve(new GenreId(request.genreId()));
+        Tape tape = load(new TapeId(id)).replaceWith(
+            new TapeTitle(request.title()),
+            TapeTitle.ofNullable(request.subtitle()),
+            request.releaseDate(),
+            new GenreId(genre.id()),
+            new TapeDuration(request.duration()),
+            request.colors().toDomain(),
+            request.pattern());
+        return TapeResponse.from(tapes.save(tape), genre);
+    }
+
+    /**
+     * Applies only the fields the request actually carried. Each one maps to a named operation on
+     * the aggregate, so the tape - not this service - decides what each change means.
+     */
+    public TapeResponse patch(UUID id, PatchTapeRequest request) {
+        Tape tape = load(new TapeId(id));
+
+        if (request.title() != null) {
+            tape.rename(new TapeTitle(request.title()));
         }
-        Tape tape = Tape.builder()
-            .id(new TapeId(id))
-            .title(new TapeTitle(request.title()))
-            .subtitle(subtitleOf(request.subtitle()))
-            .releaseDate(request.releaseDate())
-            .genre(genreRepository.findById(request.genre()))
-            .duration(new TapeDuration(request.duration()))
-            .colors(request.colors().toDomain())
-            .pattern(request.pattern())
-            .build();
-        return repository.save(tape);
-    }
+        if (request.subtitle() != null) {
+            tape.resubtitle(TapeTitle.ofNullable(request.subtitle()));
+        }
+        if (request.releaseDate() != null) {
+            tape.releasedOn(request.releaseDate());
+        }
+        if (request.genreId() != null) {
+            tape.reclassify(new GenreId(request.genreId()));
+        }
+        if (request.duration() != null) {
+            tape.runsFor(new TapeDuration(request.duration()));
+        }
+        if (request.colors() != null) {
+            tape.recolour(request.colors().toDomain());
+        }
+        if (request.pattern() != null) {
+            tape.restyle(request.pattern());
+        }
 
-    public Tape patch(UUID id, PatchTapeRequest request) {
-        Tape existing = getOrThrow(id);
-        TapeColorsDto colors = request.colors();
-        Tape tape = Tape.builder()
-            .id(existing.getId())
-            .title(request.title() != null ? new TapeTitle(request.title()) : existing.getTitle())
-            .subtitle(request.subtitle() != null ? subtitleOf(request.subtitle()) : existing.getSubtitle())
-            .releaseDate(orExisting(request.releaseDate(), existing.getReleaseDate()))
-            .genre(request.genre() != null ? genreRepository.findById(request.genre()) : existing.getGenre())
-            .duration(request.duration() != null ? new TapeDuration(request.duration()) : existing.getDuration())
-            .colors(colors != null ? colors.toDomain() : existing.getColors())
-            .pattern(orExisting(request.pattern(), existing.getPattern()))
-            .build();
-        return repository.save(tape);
+        // Resolved after the fact so a reclassification is validated on the way out too.
+        GenreDetails genre = resolve(tape.getGenre());
+        return TapeResponse.from(tapes.save(tape), genre);
     }
 
     public void delete(UUID id) {
-        if (!repository.deleteById(id)) {
-            throw new TapeNotFoundRuntimeException(id);
+        TapeId tapeId = new TapeId(id);
+        if (!tapes.deleteById(tapeId)) {
+            throw new TapeNotFoundException(tapeId);
         }
     }
 
-    private Tape getOrThrow(UUID id) {
-        try {
-            return repository.findById(id);
-        } catch (TapeNotFoundException e) {
-            throw new TapeNotFoundRuntimeException(id);
-        }
+    private Tape load(TapeId id) {
+        return tapes.findById(id).orElseThrow(() -> new TapeNotFoundException(id));
     }
 
-    private static TapeTitle subtitleOf(String subtitle) {
-        return subtitle != null ? new TapeTitle(subtitle) : null;
-    }
-
-    private static <T> T orExisting(T candidate, T existing) {
-        return candidate != null ? candidate : existing;
+    private GenreDetails resolve(GenreId id) {
+        return genres.findById(id).orElseThrow(() -> new UnknownGenreException(id));
     }
 }

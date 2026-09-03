@@ -1,16 +1,28 @@
 package com.jaqqen.tapeshub.tape.domain;
 
-import org.springframework.util.Assert;
+import com.jaqqen.tapeshub.shared.InvalidIdentifierException;
+import org.jmolecules.ddd.types.Identifier;
 
 import java.util.UUID;
 
-public record TapeId(UUID id) {
+/**
+ * A tape's identity: minted once, never changed, and what the API's URLs carry. It is the only
+ * handle on a tape - a title is free to change and free to repeat.
+ */
+public record TapeId(UUID value) implements Identifier {
+
     public TapeId {
-        Assert.notNull(id, "Tape ID must not be null");
-        Assert.isInstanceOf(UUID.class, id, "Tape ID must be of type UUID");
+        if (value == null) {
+            throw new InvalidIdentifierException("tape id");
+        }
     }
 
-    public TapeId() {
-        this(UUID.randomUUID());
+    public static TapeId newId() {
+        return new TapeId(UUID.randomUUID());
+    }
+
+    @Override
+    public String toString() {
+        return value.toString();
     }
 }

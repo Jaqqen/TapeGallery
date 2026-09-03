@@ -37,6 +37,7 @@ dependencies {
     implementation 'org.springframework.modulith:spring-modulith-starter-core'
     implementation 'org.jmolecules:jmolecules-ddd'
     implementation 'org.jmolecules:jmolecules-onion-architecture'
+    implementation 'org.apache.commons:commons-lang3'
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
@@ -70,6 +71,9 @@ dependencyManagement {
 }
 
 contracts {
+    // No contracts are defined yet. Without this the plugin fails the whole build on the empty
+    // src/contractTest/resources/contracts directory, which it does before any test even runs.
+    failOnNoContracts = false
 }
 
 // Hand Mockito's inline mock maker its agent at JVM startup, so it does not

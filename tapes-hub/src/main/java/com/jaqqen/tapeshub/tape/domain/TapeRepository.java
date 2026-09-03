@@ -1,14 +1,22 @@
 package com.jaqqen.tapeshub.tape.domain;
 
-import com.jaqqen.tapeshub.tape.domain.exception.TapeNotFoundException;
+import org.jmolecules.ddd.types.Repository;
 
 import java.util.List;
-import java.util.UUID;
+import java.util.Optional;
 
-public interface TapeRepository {
+/**
+ * The tape module's persistence port. Declared here, in the domain ring, and implemented in
+ * {@code tape.infra} - so the domain says what it needs and JPA stays on the outside.
+ */
+public interface TapeRepository extends Repository<Tape, TapeId> {
+
     List<Tape> findAll();
+
+    Optional<Tape> findById(TapeId id);
+
     Tape save(Tape tape);
-    Tape findById(UUID id) throws TapeNotFoundException;
-    boolean existsById(UUID id);
-    boolean deleteById(UUID id);
+
+    /** @return {@code false} if there was no such tape, so callers can turn that into a 404. */
+    boolean deleteById(TapeId id);
 }

@@ -1,47 +1,42 @@
 package com.jaqqen.tapeshub.tape.infra;
 
-import com.jaqqen.tapeshub.tape.domain.*;
-import org.springframework.stereotype.Service;
+import com.jaqqen.tapeshub.genre.GenreId;
+import com.jaqqen.tapeshub.tape.domain.Colors;
+import com.jaqqen.tapeshub.tape.domain.Tape;
+import com.jaqqen.tapeshub.tape.domain.TapeDuration;
+import com.jaqqen.tapeshub.tape.domain.TapeId;
+import com.jaqqen.tapeshub.tape.domain.TapePattern;
+import com.jaqqen.tapeshub.tape.domain.TapeTitle;
 
-@Service
-public class TapeMapper {
-    TapeEntity toEntity(Tape tape) {
-        return new TapeEntity.Builder()
-            .id(tape.getId().id())
-            .title(tape.getTitle().title())
-            .subtitle(tape.getSubtitle() != null ? tape.getSubtitle().title() : null)
-            .releaseDate(tape.getReleaseDate())
-            .genre(toTapeGenreEntity(tape.getGenre()))
-            .duration(tape.getDuration().milliseconds())
-            .colors(toTapeColorsEntity(tape.getColors()))
-            .pattern(tape.getPattern().getValue())
-            .build();
-    }
-    Tape toDomain(TapeEntity entity) {
-        return Tape.builder()
-            .id(new TapeId(entity.getId()))
-            .title(new TapeTitle(entity.getTitle()))
-            .subtitle(entity.getSubtitle() != null ? TapeTitle.asSubtitle(entity.getSubtitle()) : null)
-            .releaseDate(entity.getReleaseDate())
-            .genre(toTapeGenre(entity.getGenre()))
-            .duration(new TapeDuration(entity.getDuration()))
-            .colors(toTapeColors(entity.getColors()))
-            .pattern(TapePattern.fromValue(entity.getPattern()))
-            .build();
+/** Translates between the {@link Tape} aggregate and its row. Static: it holds no state. */
+final class TapeMapper {
+
+    private TapeMapper() {
     }
 
-    static TapeGenreEntity toTapeGenreEntity(TapeGenre genre) {
-        return new TapeGenreEntity(genre.id(), genre.name(), genre.description());
+    static TapeEntity toEntity(Tape tape) {
+        Colors colors = tape.getColors();
+        return new TapeEntity(
+            tape.getId().value(),
+            tape.getTitle().value(),
+            tape.getSubtitle() != null ? tape.getSubtitle().value() : null,
+            tape.getReleaseDate(),
+            tape.getGenre().value(),
+            tape.getDuration().milliseconds(),
+            new TapeColorsEmbeddable(colors.primary(), colors.secondary(), colors.accent(), colors.label()),
+            tape.getPattern().getValue());
     }
 
-    static TapeGenre toTapeGenre(TapeGenreEntity entity) {
-        return new TapeGenre(entity.getId(), entity.getName(), entity.getDescription());
-    }
-    static TapeColorsEntity toTapeColorsEntity(TapeColors colors) {
-        return new TapeColorsEntity(colors.id(), colors.primary(), colors.secondary(), colors.accent(), colors.label());
-    }
-
-    static TapeColors toTapeColors(TapeColorsEntity entity) {
-        return new TapeColors(entity.getId(), entity.getPrimary(), entity.getSecondary(), entity.getAccent(), entity.getLabel());
+    static Tape toDomain(TapeEntity entity) {
+        TapeColorsEmbeddable colors = entity.getColors();
+        return Tape.existing(
+            new TapeId(entity.getId()),
+            new TapeTitle(entity.getTitle()),
+            TapeTitle.ofNullable(entity.getSubtitle()),
+            entity.getReleaseDate(),
+            new GenreId(entity.getGenreId()),
+            new TapeDuration(entity.getDuration()),
+            new Colors(colors.getPrimary(), colors.getSecondary(), colors.getAccent(), colors.getLabel()),
+            TapePattern.fromValue(entity.getPattern()));
     }
 }
