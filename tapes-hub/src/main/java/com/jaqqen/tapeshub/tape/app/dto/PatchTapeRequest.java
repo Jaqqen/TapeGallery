@@ -9,8 +9,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * Body of PATCH /api/tapes/{id}. Every field is optional and only the ones present are applied,
- * which is why {@code duration} is boxed - {@code 0} and "not sent" have to stay distinguishable.
+ * Body of {@code PATCH /api/tapes/{id}}.
  */
 public record PatchTapeRequest(
     @Nullable String title,

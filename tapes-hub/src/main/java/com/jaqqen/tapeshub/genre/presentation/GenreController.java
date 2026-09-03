@@ -1,7 +1,7 @@
 package com.jaqqen.tapeshub.genre.presentation;
 
 import com.jaqqen.tapeshub.genre.GenreDetails;
-import com.jaqqen.tapeshub.genre.app.GenreService;
+import com.jaqqen.tapeshub.genre.app.GenreServiceImpl;
 import com.jaqqen.tapeshub.genre.app.dto.GenreRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -26,9 +26,9 @@ import java.util.UUID;
 @RequestMapping("/api/genres")
 public class GenreController {
 
-    private final GenreService service;
+    private final GenreServiceImpl service;
 
-    public GenreController(GenreService service) {
+    public GenreController(GenreServiceImpl service) {
         this.service = service;
     }
 

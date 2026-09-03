@@ -5,8 +5,12 @@ import jakarta.validation.constraints.Size;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Body of POST /api/genres and PUT /api/genres/{id}. Both carry the same fields - a genre is
- * identified by its path, never by its body - so one record serves both.
+ * Body of {@code POST /api/tapes} and {@code PUT /api/tapes/{id}}.
+ * <p>
+ *     Used to CREATE and REPLACE with same null-safety measures. The id is auto-generated through its
+ *     domain class {@link com.jaqqen.tapeshub.genre.domain.Genre} and replace receives the id through a
+ *     separate parameter
+ * </p>
  */
 public record GenreRequest(
     @NotBlank @Size(max = 64) String name,

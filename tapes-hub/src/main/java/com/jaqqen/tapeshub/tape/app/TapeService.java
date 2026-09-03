@@ -2,7 +2,7 @@ package com.jaqqen.tapeshub.tape.app;
 
 import com.jaqqen.tapeshub.genre.GenreDetails;
 import com.jaqqen.tapeshub.genre.GenreId;
-import com.jaqqen.tapeshub.genre.Genres;
+import com.jaqqen.tapeshub.genre.GenreService;
 import com.jaqqen.tapeshub.tape.app.dto.PatchTapeRequest;
 import com.jaqqen.tapeshub.tape.app.dto.TapeRequest;
 import com.jaqqen.tapeshub.tape.app.dto.TapeResponse;
@@ -23,23 +23,19 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * The tape module's only application service: it owns every use case the REST layer offers.
- *
- * <p>Its two collaborators are the tape repository and {@link Genres}, the narrow read-only view the
- * genre module publishes. Every write resolves the requested genre through that port first, which is
- * the single place enforcing "a tape cannot exist without a genre" against genres that actually
- * exist - the aggregate can only insist that the id is present, not that it resolves.
+ * {@link GenreDetails} are requested through its {@link GenreService service} to ensure that the
+ * responsibility of providing a Genre lies there.
  */
 @Service
 @Transactional
 public class TapeService {
 
     private final TapeRepository tapes;
-    private final Genres genres;
+    private final GenreService genreService;
 
-    public TapeService(TapeRepository tapes, Genres genres) {
+    public TapeService(TapeRepository tapes, GenreService genreService) {
         this.tapes = tapes;
-        this.genres = genres;
+        this.genreService = genreService;
     }
 
     @Transactional(readOnly = true)
@@ -50,7 +46,7 @@ public class TapeService {
             .collect(Collectors.toCollection(LinkedHashSet::new));
 
         // One lookup for the whole page rather than one per tape.
-        Map<GenreId, GenreDetails> byId = genres.findAllByIds(referenced);
+        Map<GenreId, GenreDetails> byId = genreService.findAllByIds(referenced);
         return all.stream().map(tape -> TapeResponse.from(tape, resolve(byId, tape.getGenre()))).toList();
     }
 
@@ -86,10 +82,6 @@ public class TapeService {
         return TapeResponse.from(tapes.save(tape), genre);
     }
 
-    /**
-     * Applies only the fields the request actually carried. Each one maps to a named operation on
-     * the aggregate, so the tape - not this service - decides what each change means.
-     */
     public TapeResponse patch(UUID id, PatchTapeRequest request) {
         Tape tape = load(new TapeId(id));
 
@@ -132,7 +124,7 @@ public class TapeService {
     }
 
     private GenreDetails resolve(GenreId id) {
-        return genres.findById(id).orElseThrow(() -> new UnknownGenreException(id));
+        return genreService.findById(id).orElseThrow(() -> new UnknownGenreException(id));
     }
 
     /**

@@ -14,11 +14,6 @@ import java.util.List;
 
 /**
  * Framework-level failures that any endpoint can produce, and nothing else.
- *
- * <p>It deliberately imports no feature module's internals - only the identifier shared kernel,
- * which exists so cross-cutting types like {@link InvalidIdentifierException} do not have to live
- * inside {@code tape} or {@code genre}. What a missing tape or a missing genre means is each
- * module's own business, handled by its own advice next to its controller.
  */
 @RestControllerAdvice
 public class ApiExceptionHandler {

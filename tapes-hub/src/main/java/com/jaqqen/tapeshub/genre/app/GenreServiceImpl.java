@@ -2,7 +2,7 @@ package com.jaqqen.tapeshub.genre.app;
 
 import com.jaqqen.tapeshub.genre.GenreDetails;
 import com.jaqqen.tapeshub.genre.GenreId;
-import com.jaqqen.tapeshub.genre.Genres;
+import com.jaqqen.tapeshub.genre.GenreService;
 import com.jaqqen.tapeshub.genre.app.dto.GenreRequest;
 import com.jaqqen.tapeshub.genre.domain.Genre;
 import com.jaqqen.tapeshub.genre.domain.GenreName;
@@ -18,52 +18,46 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-/**
- * The genre module's only application service.
- *
- * <p>It implements {@link Genres} rather than delegating to a second read-only bean: {@code Genres}
- * is the narrow view other modules are given, and this is the class that can answer it.
- */
 @Service
 @Transactional
-public class GenreService implements Genres {
+public class GenreServiceImpl implements GenreService {
 
-    private final GenreRepository genres;
+    private final GenreRepository genreRepository;
 
-    public GenreService(GenreRepository genres) {
-        this.genres = genres;
+    public GenreServiceImpl(GenreRepository genreRepository) {
+        this.genreRepository = genreRepository;
     }
 
     @Transactional(readOnly = true)
     public List<GenreDetails> list() {
-        return genres.findAll().stream().map(GenreService::detailsOf).toList();
+        return genreRepository.findAll().stream().map(GenreServiceImpl::detailsOf).toList();
     }
 
     @Transactional(readOnly = true)
     public GenreDetails get(UUID id) {
         GenreId genreId = new GenreId(id);
-        return genres.findById(genreId)
-            .map(GenreService::detailsOf)
+        return genreRepository.findById(genreId)
+            .map(GenreServiceImpl::detailsOf)
             .orElseThrow(() -> new GenreNotFoundException(genreId));
     }
 
     public GenreDetails create(GenreRequest request) {
         Genre genre = Genre.create(new GenreName(request.name()), request.description());
-        return detailsOf(genres.save(genre));
+        return detailsOf(genreRepository.save(genre));
     }
 
     public GenreDetails replace(UUID id, GenreRequest request) {
         GenreId genreId = new GenreId(id);
-        Genre genre = genres.findById(genreId)
+        Genre genre = genreRepository.findById(genreId)
             .orElseThrow(() -> new GenreNotFoundException(genreId))
             .rename(new GenreName(request.name()))
             .describe(request.description());
-        return detailsOf(genres.save(genre));
+        return detailsOf(genreRepository.save(genre));
     }
 
     public void delete(UUID id) {
         GenreId genreId = new GenreId(id);
-        if (!genres.deleteById(genreId)) {
+        if (!genreRepository.deleteById(genreId)) {
             throw new GenreNotFoundException(genreId);
         }
     }
@@ -71,20 +65,20 @@ public class GenreService implements Genres {
     @Override
     @Transactional(readOnly = true)
     public Optional<GenreDetails> findById(GenreId id) {
-        return genres.findById(id).map(GenreService::detailsOf);
+        return genreRepository.findById(id).map(GenreServiceImpl::detailsOf);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<GenreDetails> findByName(String name) {
-        return genres.findByName(name).map(GenreService::detailsOf);
+        return genreRepository.findByName(name).map(GenreServiceImpl::detailsOf);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Map<GenreId, GenreDetails> findAllByIds(Collection<GenreId> ids) {
-        return genres.findAllByIds(ids).stream()
-            .collect(Collectors.toMap(Genre::getId, GenreService::detailsOf,
+        return genreRepository.findAllByIds(ids).stream()
+            .collect(Collectors.toMap(Genre::getId, GenreServiceImpl::detailsOf,
                 (first, second) -> first));
     }
 

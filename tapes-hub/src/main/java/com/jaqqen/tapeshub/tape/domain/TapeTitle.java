@@ -8,7 +8,6 @@ import org.springframework.util.Assert;
 @ValueObject
 public record TapeTitle(String value) {
 
-    /** Mirrors {@code tape.title VARCHAR(255)} in V1__create_tapes.sql. */
     private static final int MAX_LENGTH = 255;
 
     public TapeTitle {
@@ -17,10 +16,6 @@ public record TapeTitle(String value) {
             () -> "title must be at most %d characters".formatted(MAX_LENGTH));
     }
 
-    /**
-     * For the subtitle, which a tape may simply not have. Blank counts as absent, so an empty
-     * string from a request body does not become a blank subtitle.
-     */
     public static @Nullable TapeTitle ofNullable(@Nullable String value) {
         return value == null || value.isBlank() ? null : new TapeTitle(value);
     }

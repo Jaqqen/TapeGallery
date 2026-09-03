@@ -20,10 +20,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * HTTP in, {@link TapeResponse} out. All of it delegates: the controller decides status codes and
- * nothing else.
- */
 @RestController
 @RequestMapping("/api/tapes")
 public class TapeController {

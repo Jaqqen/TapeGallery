@@ -12,8 +12,7 @@ import java.util.UUID;
  * What every tape endpoint returns.
  *
  * <p>Requests name a genre by id; responses carry the whole {@link GenreDetails} so a client can
- * render a tape without a second round trip. The genre is passed in rather than read off the tape,
- * because a tape only knows the id.
+ * render a tape without a second round trip.
  */
 public record TapeResponse(
     UUID id,

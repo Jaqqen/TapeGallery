@@ -1,4 +1,4 @@
--- Reference data: the genres a tape can belong to. Owned by the genre module alone - the tape
+-- Reference data: the genreService a tape can belong to. Owned by the genre module alone - the tape
 -- module reaches it only through the genre module's published API, never through this table.
 CREATE TABLE genre
 (

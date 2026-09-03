@@ -7,10 +7,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * The palette's four columns on the {@code tape} row. Embedded rather than a table of its own,
- * because colours have no identity and no lifecycle apart from the tape.
- */
 @Embeddable
 @NoArgsConstructor
 @AllArgsConstructor

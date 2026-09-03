@@ -12,7 +12,9 @@ import lombok.Setter;
 
 import java.util.UUID;
 
-/** The {@code genre} row. A persistence detail - {@link com.jaqqen.tapeshub.genre.domain.Genre} is the model. */
+/**
+ * The {@code genre} row. A persistence detail - {@link com.jaqqen.tapeshub.genre.domain.Genre} is the model.
+ */
 @Entity
 @Table(name = "genre")
 @NoArgsConstructor

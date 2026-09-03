@@ -17,9 +17,7 @@ import java.util.List;
  * Spring Security is on the classpath, so without an explicit chain every endpoint is behind HTTP
  * Basic and CSRF rejects every write.
  *
- * <p>The dev chain opens {@code /api/**} - both tapes and genres - and allows the Vite dev server as
- * a CORS origin. Every other profile keeps the locked-down default, so the permissive setup cannot
- * leak into a deployed environment by accident.
+ * <p>The dev chain opens {@code /api/**} and allows the dev server as a CORS origin.
  */
 @Configuration
 public class SecurityConfig {

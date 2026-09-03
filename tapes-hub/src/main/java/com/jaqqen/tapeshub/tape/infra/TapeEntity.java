@@ -17,9 +17,10 @@ import java.util.UUID;
 /**
  * The {@code tape} row. A persistence detail - {@link com.jaqqen.tapeshub.tape.domain.Tape} is the model.
  *
- * <p>The genre is a bare {@code genre_id}, not a {@code @ManyToOne}: mapping an association across
- * an aggregate boundary would let a tape load, and eventually mutate, a genre. The foreign key in
- * V1__create_tapes.sql still enforces that the id points at a real row.
+ * <p>
+ *     Other domain object (genre) is identified by {@link #genreId}. No {@code @ManyToOne}:
+ *     foreign key exists in actual database table.
+ * </p>
  */
 @Entity
 @Table(name = "tape")

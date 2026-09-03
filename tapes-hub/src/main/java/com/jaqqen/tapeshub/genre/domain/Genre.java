@@ -10,9 +10,9 @@ import java.util.Objects;
 /**
  * A genre a tape can belong to.
  *
- * <p>Built through {@link #create} - which mints the identity - or {@link #existing}, which
- * rebuilds one that the database already holds. There is no public constructor and no setter, so
- * a genre can only reach a state one of the named operations below produced.
+ * <p>Built through {@link #create} - which auto generates the id - or {@link #existing}, which rebuilds
+ * one that the database already holds. Changes go through the named operations to enforce business rules set
+ * by Genre.
  */
 @Getter
 public class Genre implements AggregateRoot<Genre, GenreId> {

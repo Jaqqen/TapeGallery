@@ -11,24 +11,16 @@ import java.util.Objects;
 /**
  * A tape - audio or video - and the aggregate root of this module.
  *
- * <p>It holds a {@link GenreId}, not a genre. An audio or video always has a genre, and this
- * package being {@code @NullMarked} is where that rule lives: every field below is non-null unless
- * marked {@link Nullable}, and NullAway fails the build on any caller that ignores it. The
- * constructor checks again at runtime because {@link #existing} is fed by Hibernate reflection,
- * which the compiler cannot vouch for. That the id points at a genre which actually exists is
- * checked one layer out, by {@code TapeService}, since only the application ring may talk to
- * another module.
- *
- * <p>Built through {@link #create} - which mints the identity - or {@link #existing}, which rebuilds
- * one the database already holds. Changes go through the named operations below rather than
- * setters, so every transition is one the aggregate agreed to.
+ * <p>Built through {@link #create} - which auto generates the id - or {@link #existing}, which rebuilds
+ * one the database already holds. Changes go through the named operations to enforce business rules set
+ * by Tape.
  */
 @Getter
 public class Tape implements AggregateRoot<Tape, TapeId> {
 
     private final TapeId id;
     private TapeTitle title;
-    /** Optional: plenty of tapes have no subtitle. */
+    /** Optional: Subtitles are not mandatory for a Tape */
     private @Nullable TapeTitle subtitle;
     private LocalDate releaseDate;
     private GenreId genre;
@@ -48,13 +40,11 @@ public class Tape implements AggregateRoot<Tape, TapeId> {
         this.pattern = Objects.requireNonNull(pattern, "pattern must not be null");
     }
 
-    /** A brand-new tape. The identity is minted here, so it cannot be passed in. */
     public static Tape create(TapeTitle title, @Nullable TapeTitle subtitle, LocalDate releaseDate, GenreId genre,
                               TapeDuration duration, Colors colors, TapePattern pattern) {
         return new Tape(TapeId.newId(), title, subtitle, releaseDate, genre, duration, colors, pattern);
     }
 
-    /** Rebuilds a tape that already exists, carrying its persisted identity. */
     public static Tape existing(TapeId id, TapeTitle title, @Nullable TapeTitle subtitle, LocalDate releaseDate,
                                 GenreId genre, TapeDuration duration, Colors colors, TapePattern pattern) {
         return new Tape(id, title, subtitle, releaseDate, genre, duration, colors, pattern);
@@ -65,9 +55,10 @@ public class Tape implements AggregateRoot<Tape, TapeId> {
         return this;
     }
 
-    /** {@code null} removes the subtitle. */
     public Tape resubtitle(@Nullable TapeTitle subtitle) {
-        this.subtitle = subtitle;
+        if (subtitle != null) {
+            this.subtitle = subtitle;
+        }
         return this;
     }
 
@@ -96,7 +87,6 @@ public class Tape implements AggregateRoot<Tape, TapeId> {
         return this;
     }
 
-    /** Every mutable field at once, for a PUT. The identity is untouched - that is what PUT means here. */
     public Tape replaceWith(TapeTitle title, @Nullable TapeTitle subtitle, LocalDate releaseDate, GenreId genre,
                             TapeDuration duration, Colors colors, TapePattern pattern) {
         return rename(title)

@@ -7,7 +7,6 @@ import org.springframework.util.Assert;
 @ValueObject
 public record GenreName(String value) {
 
-    /** Mirrors {@code genre.name VARCHAR(64)} in V1__create_tapes.sql. */
     private static final int MAX_LENGTH = 64;
 
     public GenreName {

@@ -4,16 +4,18 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
- * Sleeve pattern of a tape. The wire format is kebab-case to match the {@code pattern} union in
- * web-portal's tapes.ts, which the shelf component switches on. Adding a value here means adding
- * it there too.
+ * Pattern value is exactly as it's in {@code web-portal}
  *
- * <p>{@link JsonValue} and {@link JsonCreator} are what make that true on the wire: without them
- * Jackson would emit the constant name, so {@code RETRO_BLOCKS} would reach a frontend expecting
- * {@code retro-blocks}.
+ * <p>
+ *     {@link JsonValue} and {@link JsonCreator} prevents constant names to be sent to frontend.
+ * </p>
+ * <p>
+ *     Example:<br>
+ *     Without them Jackson would emit the constant name, so {@code RETRO_BLOCKS} would reach a
+ *     frontend expecting {@code retro-blocks}.
+ * </p>
  */
 public enum TapePattern {
-
     STRIPES("stripes"),
     GRADIENT("gradient"),
     GEOMETRIC("geometric"),

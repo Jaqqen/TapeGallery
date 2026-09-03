@@ -8,9 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Scoped to {@link TapeController} on purpose: a single application-wide advice would have to import
- * both modules' exception types, which is exactly the boundary this structure protects.
- * Framework-level failures stay in {@code config.ApiExceptionHandler}.
+ * Scoped to {@link TapeController}.
  */
 @RestControllerAdvice(assignableTypes = TapeController.class)
 class TapeExceptionHandler {

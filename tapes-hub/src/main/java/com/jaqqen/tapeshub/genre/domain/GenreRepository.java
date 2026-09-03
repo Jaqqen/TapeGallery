@@ -7,10 +7,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * The genre module's persistence port. Declared here, in the domain ring, and implemented in
- * {@code genre.infra} - so the domain says what it needs and JPA stays on the outside.
- */
 public interface GenreRepository extends Repository<Genre, GenreId> {
 
     List<Genre> findAll();

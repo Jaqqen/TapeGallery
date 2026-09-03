@@ -4,7 +4,8 @@ import com.jaqqen.tapeshub.genre.GenreId;
 import com.jaqqen.tapeshub.genre.domain.Genre;
 import com.jaqqen.tapeshub.genre.domain.GenreName;
 
-/** Translates between the {@link Genre} aggregate and its row. Static: it holds no state. */
+/** Translates between the {@link Genre} domain and db entity. */
+
 final class GenreMapper {
 
     private GenreMapper() {

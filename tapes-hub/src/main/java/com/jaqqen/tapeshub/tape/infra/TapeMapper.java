@@ -8,7 +8,7 @@ import com.jaqqen.tapeshub.tape.domain.TapeId;
 import com.jaqqen.tapeshub.tape.domain.TapePattern;
 import com.jaqqen.tapeshub.tape.domain.TapeTitle;
 
-/** Translates between the {@link Tape} aggregate and its row. Static: it holds no state. */
+/** Translates between the {@link Tape} domain and db entity. */
 final class TapeMapper {
 
     private TapeMapper() {

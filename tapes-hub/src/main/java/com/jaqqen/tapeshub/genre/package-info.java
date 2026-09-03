@@ -7,7 +7,7 @@
  *
  * <p>This package <em>is</em> the module's published API: Spring Modulith exposes a module's base
  * package and hides everything below it. Only {@link com.jaqqen.tapeshub.genre.GenreId},
- * {@link com.jaqqen.tapeshub.genre.GenreDetails} and {@link com.jaqqen.tapeshub.genre.Genres} may
+ * {@link com.jaqqen.tapeshub.genre.GenreDetails} and {@link GenreService} may
  * therefore be referenced from outside; {@code domain}, {@code app}, {@code infra} and
  * {@code presentation} are internal, and {@code ModularityTests} fails the build if that is broken.
  */

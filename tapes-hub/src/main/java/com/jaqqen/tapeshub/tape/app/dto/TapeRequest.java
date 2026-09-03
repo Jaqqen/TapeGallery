@@ -10,11 +10,14 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * Body of POST /api/tapes and PUT /api/tapes/{id}.
+ * Body of {@code POST /api/tapes} and {@code PUT /api/tapes/{id}}.
  *
- * <p>One record for both: a create carries no identifier because the server mints it, and a
- * replacement is identified by its path - so the two bodies are the same shape, and every field is
- * required in each. {@code genreId} must name a genre that already exists.
+ * <p>
+ *     Used to CREATE and REPLACE with same null-safety measures. The id is auto-generated through its
+ *     domain class {@link com.jaqqen.tapeshub.tape.domain.Tape} and replace receives the id through a
+ *     separate parameter
+ * </p>
+ * <p>{@link #genreId} must name a genre that already exists.</p>
  */
 public record TapeRequest(
     @NotBlank String title,
