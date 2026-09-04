@@ -1,6 +1,5 @@
 package com.jaqqen.tapeshub.config;
 
-import com.jaqqen.tapeshub.shared.InvalidIdentifierException;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -22,12 +21,6 @@ public class ApiExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
         return problem("Invalid request", ex.getMessage());
-    }
-
-    /** Thrown by TapeId/GenreId when constructed without a UUID - a missing identifier, not a malformed one. */
-    @ExceptionHandler(InvalidIdentifierException.class)
-    public ProblemDetail handleInvalidIdentifier(InvalidIdentifierException ex) {
-        return problem("Invalid identifier", ex.getMessage());
     }
 
     /** A path segment that is not a UUID, e.g. GET /api/tapes/neon-nights. */
