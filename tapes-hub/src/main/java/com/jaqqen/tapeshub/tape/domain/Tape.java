@@ -6,7 +6,6 @@ import org.jmolecules.ddd.types.AggregateRoot;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
-import java.util.Objects;
 
 /**
  * A tape - audio or video - and the aggregate root of this module.
@@ -30,14 +29,14 @@ public class Tape implements AggregateRoot<Tape, TapeId> {
 
     private Tape(TapeId id, TapeTitle title, @Nullable TapeTitle subtitle, LocalDate releaseDate, GenreId genre,
                  TapeDuration duration, Colors colors, TapePattern pattern) {
-        this.id = Objects.requireNonNull(id, "tape id must not be null");
-        this.title = Objects.requireNonNull(title, "title must not be null");
+        this.id = id;
+        this.title = title;
         this.subtitle = subtitle;
-        this.releaseDate = Objects.requireNonNull(releaseDate, "release date must not be null");
-        this.genre = Objects.requireNonNull(genre, "a tape must have a genre");
-        this.duration = Objects.requireNonNull(duration, "duration must not be null");
-        this.colors = Objects.requireNonNull(colors, "colors must not be null");
-        this.pattern = Objects.requireNonNull(pattern, "pattern must not be null");
+        this.releaseDate = releaseDate;
+        this.genre = genre;
+        this.duration = duration;
+        this.colors = colors;
+        this.pattern = pattern;
     }
 
     public static Tape create(TapeTitle title, @Nullable TapeTitle subtitle, LocalDate releaseDate, GenreId genre,

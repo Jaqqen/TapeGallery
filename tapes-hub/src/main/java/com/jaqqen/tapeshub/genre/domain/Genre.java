@@ -5,8 +5,6 @@ import lombok.Getter;
 import org.jmolecules.ddd.types.AggregateRoot;
 import org.jspecify.annotations.Nullable;
 
-import java.util.Objects;
-
 /**
  * A genre a tape can belong to.
  *
@@ -22,8 +20,8 @@ public class Genre implements AggregateRoot<Genre, GenreId> {
     private @Nullable String description;
 
     private Genre(GenreId id, GenreName name, @Nullable String description) {
-        this.id = Objects.requireNonNull(id, "genre id must not be null");
-        this.name = Objects.requireNonNull(name, "genre name must not be null");
+        this.id = id;
+        this.name = name;
         this.description = description;
     }
 
