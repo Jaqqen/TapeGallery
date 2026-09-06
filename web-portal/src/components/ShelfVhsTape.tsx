@@ -155,7 +155,6 @@ export default function ShelfVhsTape({ tape, isSelected, isExpanded, onSelect, i
             <div className="tape-info-strip">
               <span className="tape-year">{tape.year}</span>
               <span className="tape-genre">{tape.genre}</span>
-              <span className="tape-rating">{tape.rating}</span>
             </div>
           </div>
 

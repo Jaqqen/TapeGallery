@@ -4,6 +4,7 @@ import process from 'node:process';
 import {type Plugin} from 'vite';
 import dedent from "dedent";
 
+
 interface IncompleteTapeGalleryPidManagerPluginConfig {
     name: string;
 }
@@ -26,7 +27,7 @@ interface PidFileContent {
     command: string;
 }
 
-const PIDS_DIR: string = path.resolve(__dirname, '.pids');
+const PIDS_DIR: string = path.resolve(import.meta.dirname, '.pids');
 
 export function pidManagerPlugin(): Plugin {
     const { initResultedInError, pluginConfig }: PidManagerInitializedKeyInfo = initPidManagerKeyInfo();

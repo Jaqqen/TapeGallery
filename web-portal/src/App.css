@@ -68,6 +68,40 @@ header {
     margin: 0 auto;
 }
 
+/* Stands in for the grid while tapes load, or when they cannot be shown. */
+.shelf-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 6rem 2rem;
+    text-align: center;
+}
+
+.shelf-status-message {
+    font-size: 0.9rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.shelf-status-error {
+    color: #ff6b6b;
+    text-transform: none;
+    letter-spacing: 0.04em;
+}
+
+.shelf-status-hint {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+}
+
+.shelf-status-hint code {
+    font-family: monospace;
+    color: var(--text-muted);
+}
+
 /* ========================================
    VHS TAPE
    ======================================== */
@@ -192,20 +226,11 @@ header {
 }
 
 .tape-year,
-.tape-genre,
-.tape-rating {
+.tape-genre {
     font-size: 0.6rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.4);
-}
-
-.tape-rating {
-    margin-left: auto;
-    padding: 0.1rem 0.4rem;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 2px;
-    font-weight: 600;
 }
 
 /* Selected badge */
@@ -394,16 +419,6 @@ header {
     margin-bottom: 1rem;
 }
 
-.detail-rating-badge {
-    padding: 0.2rem 0.6rem;
-    border: 1px solid var(--tape-primary);
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--tape-primary);
-    letter-spacing: 0.08em;
-}
-
 .detail-meta {
     display: flex;
     align-items: center;
@@ -436,16 +451,11 @@ header {
     margin-bottom: 1rem;
 }
 
-.detail-description {
-    font-size: 0.9rem;
-    line-height: 1.7;
-    color: var(--text-muted);
-    margin-bottom: 1.5rem;
-}
-
 .detail-actions {
     display: flex;
     gap: 0.8rem;
+    /* The synopsis paragraph used to supply this gap before it was removed. */
+    margin-top: 1.5rem;
 }
 
 .detail-btn {
