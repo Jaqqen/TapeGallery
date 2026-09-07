@@ -14,3 +14,12 @@ spring:
   flyway:
     # the seed rows cannot appear in a deployed environment or skew tests.
     locations: classpath:db/migration,classpath:db/seed
+
+logging:
+  level:
+    # CommonsRequestLoggingFilter gates every message behind isDebugEnabled(); at the
+    # default INFO level the filter runs but prints nothing.
+    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
+    # CommonsRequestLoggingFilter only reports the request, never the response status, so a rejected
+    # call looks identical to a served one. This logger prints the reason.
+    org.springframework.web.cors.DefaultCorsProcessor: DEBUG
