@@ -5,6 +5,7 @@ import type {Tape} from "./data/tapes";
 import ShelfVhsTape from "./components/ShelfVhsTape.tsx";
 import VhsTapeDetail from "./components/VhsTapeDetail.tsx";
 import VhsTapeTray from "./components/VhsTapeTray.tsx";
+import AddTapeForm from "./components/AddTapeForm.tsx";
 import "./App.css";
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
     const [tapes, setTapes] = useState<Tape[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isFormOpen, setIsFormOpen] = useState(false);
 
     useEffect(() => {
         // StrictMode double-invokes effects in dev, so the teardown aborts the
@@ -67,6 +69,11 @@ function App() {
         setSelectedIds(new Set());
     }, []);
 
+    // The POST returns the stored tape, so the shelf grows without a second round trip.
+    const addTape = useCallback((created: Tape) => {
+        setTapes((prev) => [...prev, created]);
+    }, []);
+
     const selectedTapes = tapes.filter((t) => selectedIds.has(t.id));
 
     return (
@@ -79,6 +86,9 @@ function App() {
                         <span className="title-accent">TAPE</span> GALLERY
                     </h1>
                     <p className="app-tagline">Select your tapes &bull; Double-click to preview</p>
+                    <button className="add-tape-btn" onClick={() => setIsFormOpen(true)}>
+                        <span className="add-tape-plus">+</span> Add Tape
+                    </button>
                 </header>
 
                 {/* Tape Grid */}
@@ -115,6 +125,16 @@ function App() {
                         ))}
                     </main>
                 )}
+
+                {/* New Tape Form */}
+                <AnimatePresence>
+                    {isFormOpen && (
+                        <AddTapeForm
+                            onCreated={addTape}
+                            onClose={() => setIsFormOpen(false)}
+                        />
+                    )}
+                </AnimatePresence>
 
                 {/* Detail Modal */}
                 <VhsTapeDetail tape={detailTape} onClose={() => setDetailTape(null)}/>
