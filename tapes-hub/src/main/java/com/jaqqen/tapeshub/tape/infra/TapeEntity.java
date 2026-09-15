@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -52,4 +53,13 @@ class TapeEntity {
 
     @Column(nullable = false, length = 32)
     private String pattern;
+
+    @Column(nullable = false)
+    private Instant createdAt;
+
+    @Column(nullable = false)
+    private Instant modifiedAt;
+
+    /** {@code null} while the tape is live. Set once, when it is deleted. */
+    private @Nullable Instant deletedAt;
 }

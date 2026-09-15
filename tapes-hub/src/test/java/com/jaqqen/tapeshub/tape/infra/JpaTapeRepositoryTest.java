@@ -21,6 +21,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.context.annotation.Import;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -55,9 +56,13 @@ class JpaTapeRepositoryTest {
         // module's internals to make one - so the row goes in directly.
         action = GenreId.newId();
         em.getEntityManager()
-            .createNativeQuery("INSERT INTO genre (id, name, description) VALUES (?1, ?2, NULL)")
+            .createNativeQuery("""
+                INSERT INTO genre (id, name, description, created_at, modified_at)
+                VALUES (?1, ?2, NULL, ?3, ?3)
+                """)
             .setParameter(1, action.value())
             .setParameter(2, "Action")
+            .setParameter(3, Instant.now())
             .executeUpdate();
         em.flush();
     }
@@ -131,7 +136,7 @@ class JpaTapeRepositoryTest {
         em.clear();
 
         repository.save(Tape.existing(saved.getId(), new TapeTitle("NEON NIGHTS II"), null, RELEASED,
-            action, new TapeDuration(1000), COLORS, TapePattern.WAVES));
+            action, new TapeDuration(1000), COLORS, TapePattern.WAVES, saved.getLifecycle()));
         em.flush();
         em.clear();
 
@@ -162,16 +167,63 @@ class JpaTapeRepositoryTest {
     }
 
     @Test
-    void deleteRemovesTheTapeAndReportsIt() {
+    void testLifecyclePersistsCorrectly() {
+        Tape saved = save("NEON NIGHTS", null);
+        em.flush();
+        em.clear();
+
+        // The stamps are truncated to microseconds
+        assertThat(repository.findById(saved.getId()))
+            .hasValueSatisfying(found -> assertThat(found.getLifecycle()).isEqualTo(saved.getLifecycle()));
+    }
+
+    @Test
+    void deleteMarksTheTapeAndReportsIt() {
         Tape neon = save("NEON NIGHTS", null);
         em.flush();
 
         assertThat(repository.deleteById(neon.getId())).isTrue();
-        // Unlike the genre adapter, this one does not flush the delete itself - it has no foreign
-        // key to report on - so the flush that reaches the database is the test's to do.
         em.flush();
         em.clear();
         assertThat(repository.findById(neon.getId())).isEmpty();
+    }
+
+    @Test
+    void deleteLeavesTheRowInPlaceWithADeletedAtStamp() {
+        Tape neon = save("NEON NIGHTS", null);
+        em.flush();
+        repository.deleteById(neon.getId());
+        em.flush();
+
+        Object deletedAt = em.getEntityManager()
+            .createNativeQuery("SELECT deleted_at FROM tape WHERE id = ?1")
+            .setParameter(1, neon.getId().value())
+            .getSingleResult();
+
+        assertThat(deletedAt).isNotNull();
+    }
+
+    @Test
+    void aDeletedTapeIsHiddenFromEveryFind() {
+        Tape neon = save("NEON NIGHTS", null);
+        Tape chrome = save("CHROME HORIZON", null);
+        em.flush();
+        repository.deleteById(neon.getId());
+        em.flush();
+        em.clear();
+
+        assertThat(repository.findById(neon.getId())).isEmpty();
+        assertThat(repository.findAll()).map(Tape::getId).containsExactly(chrome.getId());
+    }
+
+    @Test
+    void deletingTwiceReportsFalseTheSecondTime() {
+        Tape neon = save("NEON NIGHTS", null);
+        em.flush();
+
+        assertThat(repository.deleteById(neon.getId())).isTrue();
+        em.flush();
+        assertThat(repository.deleteById(neon.getId())).isFalse();
     }
 
     @Test

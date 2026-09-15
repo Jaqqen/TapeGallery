@@ -1,6 +1,7 @@
 package com.jaqqen.tapeshub.tape.infra;
 
 import com.jaqqen.tapeshub.genre.GenreId;
+import com.jaqqen.tapeshub.shared.Lifecycle;
 import com.jaqqen.tapeshub.tape.domain.Colors;
 import com.jaqqen.tapeshub.tape.domain.Tape;
 import com.jaqqen.tapeshub.tape.domain.TapeDuration;
@@ -16,6 +17,7 @@ final class TapeMapper {
 
     static TapeEntity toEntity(Tape tape) {
         Colors colors = tape.getColors();
+        Lifecycle lifecycle = tape.getLifecycle();
         return new TapeEntity(
             tape.getId().value(),
             tape.getTitle().value(),
@@ -24,7 +26,10 @@ final class TapeMapper {
             tape.getGenre().value(),
             tape.getDuration().milliseconds(),
             new TapeColorsEmbeddable(colors.primary(), colors.secondary(), colors.accent(), colors.label()),
-            tape.getPattern().getValue());
+            tape.getPattern().getValue(),
+            lifecycle.createdAt(),
+            lifecycle.modifiedAt(),
+            lifecycle.deletedAt());
     }
 
     static Tape toDomain(TapeEntity entity) {
@@ -37,6 +42,7 @@ final class TapeMapper {
             new GenreId(entity.getGenreId()),
             new TapeDuration(entity.getDuration()),
             new Colors(colors.getCentral(), colors.getSecondary(), colors.getAccent(), colors.getLabel()),
-            TapePattern.fromValue(entity.getPattern()));
+            TapePattern.fromValue(entity.getPattern()),
+            new Lifecycle(entity.getCreatedAt(), entity.getModifiedAt(), entity.getDeletedAt()));
     }
 }

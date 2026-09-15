@@ -16,6 +16,7 @@ import com.jaqqen.tapeshub.tape.domain.TapePattern;
 import com.jaqqen.tapeshub.tape.domain.TapeRepository;
 import com.jaqqen.tapeshub.tape.domain.TapeTitle;
 import org.jspecify.annotations.Nullable;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -24,6 +25,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -50,10 +52,12 @@ class TapeServiceTest {
     private static final Colors COLORS = new Colors("#ff006e", "#8338ec", "#ffbe0b", "#1a1a2e");
     private static final TapeColorsDto COLORS_DTO = new TapeColorsDto("#ff006e", "#8338ec", "#ffbe0b", "#1a1a2e");
 
+    private static final Instant STAMP = Instant.parse("2026-09-10T12:00:00Z");
+
     private static final GenreId ACTION_ID = GenreId.newId();
-    private static final GenreDetails ACTION = new GenreDetails(ACTION_ID.value(), "Action", "Chases and stunts.");
+    private GenreDetails actionGenreDetails;
     private static final GenreId SCI_FI_ID = GenreId.newId();
-    private static final GenreDetails SCI_FI = new GenreDetails(SCI_FI_ID.value(), "Sci-Fi", null);
+    private GenreDetails sciFiGenreDetails;
 
     @Mock
     private TapeRepository tapes;
@@ -66,6 +70,13 @@ class TapeServiceTest {
 
     @Captor
     private ArgumentCaptor<Tape> saved;
+
+    @BeforeEach
+    void setUp() {
+        sciFiGenreDetails = new GenreDetails(SCI_FI_ID.value(), "Sci-Fi", null, STAMP, STAMP, null);
+        actionGenreDetails =
+            new GenreDetails(ACTION_ID.value(), "Action", "Chases and stunts.", STAMP, STAMP, null);
+    }
 
     private static Tape tape(String title, @Nullable String subtitle, GenreId genre) {
         return Tape.create(new TapeTitle(title), TapeTitle.ofNullable(subtitle), RELEASED, genre,
@@ -84,12 +95,12 @@ class TapeServiceTest {
         Tape neon = tape("NEON NIGHTS", null, ACTION_ID);
         Tape chrome = tape("CHROME HORIZON", null, SCI_FI_ID);
         when(tapes.findAll()).thenReturn(List.of(neon, chrome));
-        when(genres.findAllByIds(anyCollection())).thenReturn(Map.of(ACTION_ID, ACTION, SCI_FI_ID, SCI_FI));
+        when(genres.findAllByIds(anyCollection())).thenReturn(Map.of(ACTION_ID, actionGenreDetails, SCI_FI_ID, sciFiGenreDetails));
 
         List<TapeResponse> responses = service.list();
 
         assertThat(responses).map(TapeResponse::title).containsExactly("NEON NIGHTS", "CHROME HORIZON");
-        assertThat(responses).map(TapeResponse::genre).containsExactly(ACTION, SCI_FI);
+        assertThat(responses).map(TapeResponse::genre).containsExactly(actionGenreDetails, sciFiGenreDetails);
         // The whole point of findAllByIds: rendering a page of tapes must not fan out into one
         // genre lookup per row.
         verify(genres, never()).findById(any());
@@ -101,7 +112,7 @@ class TapeServiceTest {
             tape("NEON NIGHTS", null, ACTION_ID),
             tape("SOLAR BURN", null, ACTION_ID),
             tape("CHROME HORIZON", null, SCI_FI_ID)));
-        when(genres.findAllByIds(anyCollection())).thenReturn(Map.of(ACTION_ID, ACTION, SCI_FI_ID, SCI_FI));
+        when(genres.findAllByIds(anyCollection())).thenReturn(Map.of(ACTION_ID, actionGenreDetails, SCI_FI_ID, sciFiGenreDetails));
 
         service.list();
 
@@ -136,7 +147,7 @@ class TapeServiceTest {
     void getReturnsTheTapeWithItsGenreExpanded() {
         Tape neon = tape("NEON NIGHTS", "The City Never Sleeps", ACTION_ID);
         when(tapes.findById(neon.getId())).thenReturn(Optional.of(neon));
-        when(genres.findById(ACTION_ID)).thenReturn(Optional.of(ACTION));
+        when(genres.findById(ACTION_ID)).thenReturn(Optional.of(actionGenreDetails));
 
         TapeResponse response = service.get(neon.getId().value());
 
@@ -148,7 +159,7 @@ class TapeServiceTest {
         assertThat(response.colors()).isEqualTo(COLORS_DTO);
         assertThat(response.pattern()).isEqualTo(TapePattern.STRIPES);
         // Requests name a genre by id; responses carry the whole thing, so no second round trip.
-        assertThat(response.genre()).isEqualTo(ACTION);
+        assertThat(response.genre()).isEqualTo(actionGenreDetails);
     }
 
     @Test
@@ -165,7 +176,7 @@ class TapeServiceTest {
 
     @Test
     void createBuildsTheTapeFromTheRequest() {
-        when(genres.findById(ACTION_ID)).thenReturn(Optional.of(ACTION));
+        when(genres.findById(ACTION_ID)).thenReturn(Optional.of(actionGenreDetails));
         when(tapes.save(any())).thenAnswer(call -> call.getArgument(0));
 
         TapeResponse created = service.create(request());
@@ -177,12 +188,12 @@ class TapeServiceTest {
         assertThat(tape.getGenre()).isEqualTo(ACTION_ID);
         assertThat(tape.getColors()).isEqualTo(COLORS);
         assertThat(created.id()).isEqualTo(tape.getId().value());
-        assertThat(created.genre()).isEqualTo(ACTION);
+        assertThat(created.genre()).isEqualTo(actionGenreDetails);
     }
 
     @Test
     void createTreatsABlankSubtitleAsNoSubtitle() {
-        when(genres.findById(ACTION_ID)).thenReturn(Optional.of(ACTION));
+        when(genres.findById(ACTION_ID)).thenReturn(Optional.of(actionGenreDetails));
         when(tapes.save(any())).thenAnswer(call -> call.getArgument(0));
 
         TapeResponse created = service.create(new TapeRequest("NEON NIGHTS", "   ", RELEASED,
@@ -208,7 +219,7 @@ class TapeServiceTest {
     @Test
     void replaceOverwritesTheStoredTape() {
         Tape stored = tape("NEON NIGHTS", null, ACTION_ID);
-        when(genres.findById(SCI_FI_ID)).thenReturn(Optional.of(SCI_FI));
+        when(genres.findById(SCI_FI_ID)).thenReturn(Optional.of(sciFiGenreDetails));
         when(tapes.findById(stored.getId())).thenReturn(Optional.of(stored));
         when(tapes.save(any())).thenAnswer(call -> call.getArgument(0));
 
@@ -219,14 +230,14 @@ class TapeServiceTest {
 
         assertThat(replaced.id()).isEqualTo(stored.getId().value());
         assertThat(replaced.title()).isEqualTo("CHROME HORIZON");
-        assertThat(replaced.genre()).isEqualTo(SCI_FI);
+        assertThat(replaced.genre()).isEqualTo(sciFiGenreDetails);
         assertThat(replaced.pattern()).isEqualTo(TapePattern.GRADIENT);
     }
 
     @Test
     void replaceOfAnUnknownTapeIsANotFound() {
         UUID id = UUID.randomUUID();
-        when(genres.findById(ACTION_ID)).thenReturn(Optional.of(ACTION));
+        when(genres.findById(ACTION_ID)).thenReturn(Optional.of(actionGenreDetails));
         when(tapes.findById(new TapeId(id))).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(TapeNotFoundException.class)
@@ -250,7 +261,7 @@ class TapeServiceTest {
     void patchChangesOnlyTheFieldsThatWereSent() {
         Tape stored = tape("NEON NIGHTS", "The City Never Sleeps", ACTION_ID);
         when(tapes.findById(stored.getId())).thenReturn(Optional.of(stored));
-        when(genres.findById(ACTION_ID)).thenReturn(Optional.of(ACTION));
+        when(genres.findById(ACTION_ID)).thenReturn(Optional.of(actionGenreDetails));
         when(tapes.save(any())).thenAnswer(call -> call.getArgument(0));
 
         TapeResponse patched = service.patch(stored.getId().value(), new PatchTapeRequest(
@@ -262,28 +273,28 @@ class TapeServiceTest {
         assertThat(patched.duration()).isEqualTo(6_840_000);
         assertThat(patched.colors()).isEqualTo(COLORS_DTO);
         assertThat(patched.pattern()).isEqualTo(TapePattern.STRIPES);
-        assertThat(patched.genre()).isEqualTo(ACTION);
+        assertThat(patched.genre()).isEqualTo(actionGenreDetails);
     }
 
     @Test
     void anEmptyPatchLeavesTheTapeAsItWas() {
         Tape stored = tape("NEON NIGHTS", null, ACTION_ID);
         when(tapes.findById(stored.getId())).thenReturn(Optional.of(stored));
-        when(genres.findById(ACTION_ID)).thenReturn(Optional.of(ACTION));
+        when(genres.findById(ACTION_ID)).thenReturn(Optional.of(actionGenreDetails));
         when(tapes.save(any())).thenAnswer(call -> call.getArgument(0));
 
         TapeResponse patched = service.patch(stored.getId().value(),
             new PatchTapeRequest(null, null, null, null, null, null, null));
 
         assertThat(patched.title()).isEqualTo("NEON NIGHTS");
-        assertThat(patched.genre()).isEqualTo(ACTION);
+        assertThat(patched.genre()).isEqualTo(actionGenreDetails);
     }
 
     @Test
     void patchCanChangeEveryField() {
         Tape stored = tape("NEON NIGHTS", null, ACTION_ID);
         when(tapes.findById(stored.getId())).thenReturn(Optional.of(stored));
-        when(genres.findById(SCI_FI_ID)).thenReturn(Optional.of(SCI_FI));
+        when(genres.findById(SCI_FI_ID)).thenReturn(Optional.of(sciFiGenreDetails));
         when(tapes.save(any())).thenAnswer(call -> call.getArgument(0));
 
         TapeResponse patched = service.patch(stored.getId().value(), new PatchTapeRequest(
@@ -294,7 +305,7 @@ class TapeServiceTest {
         assertThat(patched.title()).isEqualTo("CHROME HORIZON");
         assertThat(patched.subtitle()).isEqualTo("Beyond the Last Frontier");
         assertThat(patched.releaseDate()).isEqualTo(LocalDate.of(1984, 1, 1));
-        assertThat(patched.genre()).isEqualTo(SCI_FI);
+        assertThat(patched.genre()).isEqualTo(sciFiGenreDetails);
         assertThat(patched.duration()).isEqualTo(7_920_000);
         assertThat(patched.colors()).isEqualTo(new TapeColorsDto("#00b4d8", "#0077b6", "#90e0ef", "#023e8a"));
         assertThat(patched.pattern()).isEqualTo(TapePattern.GRADIENT);

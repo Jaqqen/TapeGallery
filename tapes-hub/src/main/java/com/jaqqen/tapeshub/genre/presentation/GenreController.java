@@ -58,7 +58,7 @@ public class GenreController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        service.delete(id);
+        service.softDelete(id);
         return ResponseEntity.noContent().build();
     }
 }

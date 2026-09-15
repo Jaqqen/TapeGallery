@@ -5,6 +5,7 @@ import com.jaqqen.tapeshub.genre.GenreId;
 import com.jaqqen.tapeshub.genre.app.GenreServiceImpl;
 import com.jaqqen.tapeshub.genre.domain.GenreInUseException;
 import com.jaqqen.tapeshub.genre.domain.GenreNotFoundException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -13,23 +14,15 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * The HTTP edge of the genre module: status codes, the {@code Location} header, and the
@@ -44,7 +37,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class GenreControllerTest {
 
     private static final UUID ID = UUID.fromString("8e17b20c-0e19-4c68-9eba-f5d5e9e9688d");
-    private static final GenreDetails HORROR = new GenreDetails(ID, "Horror", "Built to frighten.");
+    private static final Instant CREATED = Instant.parse("2026-09-10T12:00:00Z");
+    private static final Instant MODIFIED = Instant.parse("2026-09-11T09:30:00Z");
+    private GenreDetails horrorDetails;
 
     @Autowired
     private MockMvc mvc;
@@ -52,9 +47,15 @@ class GenreControllerTest {
     @MockitoBean
     private GenreServiceImpl service;
 
+    @BeforeEach
+    void setUp() {
+        horrorDetails = new GenreDetails(
+            ID, "Horror", "Built to frighten.", CREATED, MODIFIED, null);
+    }
+
     @Test
     void listReturnsEveryGenre() throws Exception {
-        when(service.list()).thenReturn(List.of(HORROR));
+        when(service.list()).thenReturn(List.of(horrorDetails));
 
         mvc.perform(get("/api/genres"))
             .andExpect(status().isOk())
@@ -66,8 +67,19 @@ class GenreControllerTest {
     }
 
     @Test
+    void theLifecycleStampsAreWrittenAsIso8601Instants() throws Exception {
+        when(service.get(ID)).thenReturn(horrorDetails);
+
+        mvc.perform(get("/api/genres/{id}", ID))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.createdAt").value("2026-09-10T12:00:00Z"))
+            .andExpect(jsonPath("$.modifiedAt").value("2026-09-11T09:30:00Z"))
+            .andExpect(jsonPath("$.deletedAt").doesNotExist());
+    }
+
+    @Test
     void getReturnsOneGenre() throws Exception {
-        when(service.get(ID)).thenReturn(HORROR);
+        when(service.get(ID)).thenReturn(horrorDetails);
 
         mvc.perform(get("/api/genres/{id}", ID))
             .andExpect(status().isOk())
@@ -87,7 +99,7 @@ class GenreControllerTest {
 
     @Test
     void getWithSomethingThatIsNotAUuidIs400() throws Exception {
-        // Handled by the application-wide ApiExceptionHandler, not this module's.
+        // Handled by the application-wide ApiExceptionHandler
         mvc.perform(get("/api/genres/{id}", "horror"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.title").value("Invalid request"))
@@ -96,7 +108,7 @@ class GenreControllerTest {
 
     @Test
     void createReturns201WithALocationHeader() throws Exception {
-        when(service.create(any())).thenReturn(HORROR);
+        when(service.create(any())).thenReturn(horrorDetails);
 
         mvc.perform(post("/api/genres")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -109,7 +121,8 @@ class GenreControllerTest {
 
     @Test
     void createAcceptsAGenreWithoutADescription() throws Exception {
-        when(service.create(any())).thenReturn(new GenreDetails(ID, "Horror", null));
+        when(service.create(any()))
+            .thenReturn(new GenreDetails(ID, "Horror", null, CREATED, MODIFIED, null));
 
         mvc.perform(post("/api/genres")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -152,7 +165,7 @@ class GenreControllerTest {
 
     @Test
     void replaceReturnsTheUpdatedGenre() throws Exception {
-        GenreDetails renamed = new GenreDetails(ID, "Horror & Suspense", null);
+        GenreDetails renamed = new GenreDetails(ID, "Horror & Suspense", null, CREATED, MODIFIED, null);
         when(service.replace(eq(ID), any())).thenReturn(renamed);
 
         mvc.perform(put("/api/genres/{id}", ID)
@@ -180,12 +193,12 @@ class GenreControllerTest {
             .andExpect(status().isNoContent())
             .andExpect(content().string(""));
 
-        verify(service).delete(ID);
+        verify(service).softDelete(ID);
     }
 
     @Test
     void deleteOfAnUnknownGenreIs404() throws Exception {
-        doThrow(new GenreNotFoundException(new GenreId(ID))).when(service).delete(ID);
+        doThrow(new GenreNotFoundException(new GenreId(ID))).when(service).softDelete(ID);
 
         mvc.perform(delete("/api/genres/{id}", ID))
             .andExpect(status().isNotFound())
@@ -194,7 +207,7 @@ class GenreControllerTest {
 
     @Test
     void deleteOfAGenreStillInUseIs409() throws Exception {
-        doThrow(new GenreInUseException(new GenreId(ID))).when(service).delete(ID);
+        doThrow(new GenreInUseException(new GenreId(ID))).when(service).softDelete(ID);
 
         // 409, not 404 or 500: the request is well-formed, the genre's current state refuses it.
         mvc.perform(delete("/api/genres/{id}", ID))

@@ -1,8 +1,10 @@
 package com.jaqqen.tapeshub.tape.domain;
 
 import com.jaqqen.tapeshub.genre.GenreId;
+import com.jaqqen.tapeshub.shared.Lifecycle;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -14,6 +16,13 @@ class TapeTest {
     private static final LocalDate RELEASED = LocalDate.of(1987, 1, 1);
     private static final TapeDuration DURATION = new TapeDuration(6_840_000);
     private static final Colors COLORS = new Colors("#ff006e", "#8338ec", "#ffbe0b", "#1a1a2e");
+    private static final Instant NOON = Instant.parse("2026-09-10T12:00:00Z");
+    private static final Lifecycle STORED = new Lifecycle(NOON, NOON, null);
+
+    private static Tape stored() {
+        return Tape.existing(TapeId.newId(), TITLE, SUBTITLE, RELEASED, GenreId.newId(), DURATION,
+            COLORS, TapePattern.STRIPES, STORED);
+    }
 
     private static Tape tape() {
         return Tape.create(TITLE, SUBTITLE, RELEASED, GenreId.newId(), DURATION, COLORS,
@@ -57,9 +66,14 @@ class TapeTest {
         TapeId id = TapeId.newId();
 
         Tape tape = Tape.existing(id, TITLE, null, RELEASED, GenreId.newId(), DURATION, COLORS,
-            TapePattern.STRIPES);
+            TapePattern.STRIPES, STORED);
 
         assertThat(tape.getId()).isEqualTo(id);
+    }
+
+    @Test
+    void validateExistingTapeLifecycle() {
+        assertThat(stored().getLifecycle()).isEqualTo(STORED);
     }
 
     @Test
@@ -142,5 +156,62 @@ class TapeTest {
         // Current behaviour, pinned rather than endorsed: replaceWith delegates to resubtitle, so a
         // PUT that omits the subtitle does not blank it the way a full replace otherwise would.
         assertThat(tape.getSubtitle()).isEqualTo(SUBTITLE);
+    }
+
+    // --- lifecycle --------------------------------------------------------------------------
+
+    @Test
+    void checkLifecycleCreationThroughTapeCreation() {
+        Tape tape = tape();
+
+        assertThat(tape.getLifecycle().createdAt()).isEqualTo(tape.getLifecycle().modifiedAt());
+        assertThat(tape.getLifecycle().deletedAt()).isNull();
+        assertThat(tape.isDeleted()).isFalse();
+    }
+
+    @Test
+    void testModifiedAtByModifyingTape() {
+        Tape tape = stored();
+
+        tape.rename(new TapeTitle("CHROME HORIZON"));
+
+        assertThat(tape.getLifecycle().createdAt()).isEqualTo(NOON);
+        assertThat(tape.getLifecycle().modifiedAt()).isAfter(NOON);
+    }
+
+    @Test
+    void nullSubtitleChangesNothing() {
+        Tape tape = stored();
+
+        tape.resubtitle(null);
+
+        assertThat(tape.getLifecycle().modifiedAt()).isEqualTo(NOON);
+    }
+
+    @Test
+    void replaceChangesModifiedAtOnce() {
+        Tape tape = stored();
+
+        tape.replaceWith(TITLE, SUBTITLE, RELEASED, GenreId.newId(), DURATION, COLORS,
+            TapePattern.GRADIENT);
+
+        assertThat(tape.getLifecycle().modifiedAt()).isAfter(NOON);
+        assertThat(tape.getLifecycle().createdAt()).isEqualTo(NOON);
+    }
+
+    @Test
+    void validateTapeAfterSoftDelete() {
+        Tape tape = stored();
+        TapeId id = tape.getId();
+
+        Tape deleted = tape.softDelete();
+
+        assertThat(deleted).isSameAs(tape);
+        assertThat(tape.isDeleted()).isTrue();
+        assertThat(tape.getLifecycle().deletedAt()).isNotNull();
+        // Soft delete: the tape still is what it was, it is only marked.
+        assertThat(tape.getId()).isEqualTo(id);
+        assertThat(tape.getTitle()).isEqualTo(TITLE);
+        assertThat(tape.getReleaseDate()).isEqualTo(RELEASED);
     }
 }

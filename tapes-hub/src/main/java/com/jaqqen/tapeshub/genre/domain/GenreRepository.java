@@ -19,6 +19,6 @@ public interface GenreRepository extends Repository<Genre, GenreId> {
 
     Genre save(Genre genre);
 
-    /** @return {@code false} if there was no such genre, so callers can turn that into a 404. */
-    boolean deleteById(GenreId id);
+    /** @return {@code false} if there was no such genre, {@code true} if successfully soft deleted*/
+    boolean softDeleteById(GenreId id);
 }

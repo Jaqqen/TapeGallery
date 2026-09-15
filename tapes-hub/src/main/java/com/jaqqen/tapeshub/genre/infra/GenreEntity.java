@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -30,4 +31,13 @@ class GenreEntity {
     private String name;
 
     private @Nullable String description;
+
+    @Column(nullable = false)
+    private Instant createdAt;
+
+    @Column(nullable = false)
+    private Instant modifiedAt;
+
+    /** {@code null} while the genre is live. Set once, when it is deleted. */
+    private @Nullable Instant deletedAt;
 }
