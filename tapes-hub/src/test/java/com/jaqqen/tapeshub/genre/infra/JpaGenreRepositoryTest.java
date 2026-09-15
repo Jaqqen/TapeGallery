@@ -3,11 +3,12 @@ package com.jaqqen.tapeshub.genre.infra;
 import com.jaqqen.tapeshub.TestcontainersConfiguration;
 import com.jaqqen.tapeshub.genre.GenreId;
 import com.jaqqen.tapeshub.genre.domain.Genre;
-import com.jaqqen.tapeshub.genre.domain.GenreInUseException;
 import com.jaqqen.tapeshub.genre.domain.GenreName;
 import com.jaqqen.tapeshub.genre.domain.GenreRepository;
-import org.junit.jupiter.api.Test;
+import org.assertj.core.api.AbstractListAssert;
+import org.assertj.core.api.ObjectAssert;
 import org.jspecify.annotations.Nullable;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -16,18 +17,10 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.context.annotation.Import;
 
-import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-/**
- * The genre module's infrastructure ring against a real Postgres, on the schema Flyway builds - so
- * the mapping, the {@code name} index and the foreign key from {@code tape} are all the production
- * ones. Every test runs in a transaction that is rolled back afterwards.
- */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ImportAutoConfiguration(FlywayAutoConfiguration.class)
@@ -59,7 +52,7 @@ class JpaGenreRepositoryTest {
 
     @Test
     void descriptionIsOptional() {
-        Genre saved = repository.save(Genre.create(new GenreName("Western"), null));
+        Genre saved = save("Western", null);
         em.flush();
         em.clear();
 
@@ -68,12 +61,13 @@ class JpaGenreRepositoryTest {
     }
 
     @Test
-    void saveOfAnExistingIdUpdatesRatherThanInserts() {
+    void testThatSaveOnExistingEntityUpdatesIt() {
         Genre saved = save("Sci-Fi", "old");
         em.flush();
         em.clear();
 
-        repository.save(Genre.existing(saved.getId(), new GenreName("Science Fiction"), "new"));
+        repository.save(Genre.existing(saved.getId(), new GenreName("Science Fiction"), "new",
+            saved.getLifecycle()));
         em.flush();
         em.clear();
 
@@ -111,20 +105,18 @@ class JpaGenreRepositoryTest {
     }
 
     @Test
-    void findAllIsEmptyOnAnEmptyTable() {
-        assertThat(repository.findAll()).isEmpty();
-    }
-
-    @Test
     void findAllByIdsSkipsIdsThatDoNotExist() {
         Genre horror = save("Horror", null);
-        save("Action", null);
+        Genre action = save("Action", null);
         em.flush();
         em.clear();
 
         List<Genre> found = repository.findAllByIds(List.of(horror.getId(), GenreId.newId()));
 
-        assertThat(found).map(Genre::getId).containsExactly(horror.getId());
+        final AbstractListAssert<?, List<? extends GenreId>, GenreId, ObjectAssert<GenreId>> map = assertThat(found)
+            .map(Genre::getId);
+        map.containsExactly(horror.getId());
+        map.doesNotContain(action.getId());
     }
 
     @Test
@@ -133,50 +125,70 @@ class JpaGenreRepositoryTest {
     }
 
     @Test
-    void deleteRemovesTheGenreAndReportsIt() {
+    void testLifecyclePersistsCorrectly() {
+        Genre saved = save("Sci-Fi", null);
+        em.flush();
+        em.clear();
+
+        // The stamps are truncated to microseconds due to timestamptz
+        assertThat(repository.findById(saved.getId()))
+            .hasValueSatisfying(found -> assertThat(found.getLifecycle()).isEqualTo(saved.getLifecycle()));
+    }
+
+    @Test
+    void deleteMarksTheGenreAndReportsIt() {
         Genre horror = save("Horror", null);
         em.flush();
 
-        assertThat(repository.deleteById(horror.getId())).isTrue();
+        assertThat(repository.softDeleteById(horror.getId())).isTrue();
+        em.flush();
         em.clear();
         assertThat(repository.findById(horror.getId())).isEmpty();
     }
 
     @Test
-    void deleteOfAnUnknownGenreReportsFalseRatherThanThrowing() {
-        // The service turns this into a 404; an EmptyResultDataAccessException would be a 500.
-        assertThat(repository.deleteById(GenreId.newId())).isFalse();
+    void deleteLeavesTheRowInPlaceWithADeletedAtStamp() {
+        Genre horror = save("Horror", null);
+        em.flush();
+        repository.softDeleteById(horror.getId());
+        em.flush();
+
+        Object deletedAt = em.getEntityManager()
+            .createNativeQuery("SELECT deleted_at FROM genre WHERE id = ?1")
+            .setParameter(1, horror.getId().value())
+            .getSingleResult();
+
+        assertThat(deletedAt).isNotNull();
     }
 
     @Test
-    void deleteOfAGenreATapeStillPointsAtIsRejected() {
+    void deletingTwiceReportsFalseTheSecondTime() {
         Genre horror = save("Horror", null);
         em.flush();
-        insertTapeReferencing(horror.getId());
 
-        // The adapter flushes the delete itself so the foreign key fails here, where the genre id is
-        // still known - not at commit time, far away from anything that could name the cause.
-        assertThatExceptionOfType(GenreInUseException.class)
-            .isThrownBy(() -> repository.deleteById(horror.getId()))
-            .withMessage("Genre '%s' is still in use and cannot be deleted".formatted(horror.getId()));
+        assertThat(repository.softDeleteById(horror.getId())).isTrue();
+        em.flush();
+        assertThat(repository.softDeleteById(horror.getId())).isFalse();
     }
 
-    /**
-     * Written straight to the table rather than through the tape module: what is under test is the
-     * {@code fk_tape_genre} constraint, and this module may not reach into the other's internals.
-     */
-    private void insertTapeReferencing(GenreId genreId) {
-        em.getEntityManager().createNativeQuery("""
-                INSERT INTO tape (id, title, release_date, genre_id, duration,
-                                  central, secondary, accent, label, pattern)
-                VALUES (?1, ?2, ?3, ?4, ?5, '#ff006e', '#8338ec', '#ffbe0b', '#1a1a2e', 'stripes')
-                """)
-            .setParameter(1, UUID.randomUUID())
-            .setParameter(2, "NEON NIGHTS")
-            .setParameter(3, LocalDate.of(1987, 1, 1))
-            .setParameter(4, genreId.value())
-            .setParameter(5, 6_840_000)
-            .executeUpdate();
+    @Test
+    void deleteOfAnUnknownGenreReportsFalseRatherThanThrowing() {
+        assertThat(repository.softDeleteById(GenreId.newId())).isFalse();
+    }
+
+    @Test
+    void aDeletedGenreIsHiddenFromEveryFind() {
+        Genre horror = save("Horror", null);
+        Genre action = save("Action", null);
         em.flush();
+        repository.softDeleteById(horror.getId());
+        em.flush();
+        em.clear();
+
+        assertThat(repository.findById(horror.getId())).isEmpty();
+        assertThat(repository.findByName("Horror")).isEmpty();
+        assertThat(repository.findAll()).map(Genre::getId).containsExactly(action.getId());
+        assertThat(repository.findAllByIds(List.of(horror.getId(), action.getId())))
+            .map(Genre::getId).containsExactly(action.getId());
     }
 }

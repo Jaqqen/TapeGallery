@@ -10,6 +10,7 @@ import com.jaqqen.tapeshub.tape.domain.TapeId;
 import com.jaqqen.tapeshub.tape.domain.TapeNotFoundException;
 import com.jaqqen.tapeshub.tape.domain.TapePattern;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -18,25 +19,16 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * The HTTP edge of the tape module: the wire format, and the two failures it has to tell apart -
@@ -48,11 +40,12 @@ class TapeControllerTest {
 
     private static final UUID TAPE_ID = UUID.fromString("3f2504e0-4f89-41d3-9a0c-0305e82c3301");
     private static final UUID GENRE_ID = UUID.fromString("8e17b20c-0e19-4c68-9eba-f5d5e9e9688d");
-    private static final GenreDetails ACTION = new GenreDetails(GENRE_ID, "Action", "Chases and stunts.");
+    private static final Instant CREATED = Instant.parse("2026-09-10T12:00:00Z");
+    private static final Instant MODIFIED = Instant.parse("2026-09-11T09:30:00Z");
+    private static final GenreDetails ACTION_GENRE_DETAILS = new GenreDetails(
+        GENRE_ID, "Action", "Chases and stunts.", CREATED, CREATED, null);;
 
-    private static final TapeResponse NEON_NIGHTS = new TapeResponse(
-        TAPE_ID, "NEON NIGHTS", "The City Never Sleeps", LocalDate.of(1987, 1, 1), ACTION,
-        6_840_000, new TapeColorsDto("#ff006e", "#8338ec", "#ffbe0b", "#1a1a2e"), TapePattern.RETRO_BLOCKS);
+    private TapeResponse neonNightsTapeResponse;
 
     private static final String VALID_BODY = """
         {
@@ -71,9 +64,18 @@ class TapeControllerTest {
     @MockitoBean
     private TapeService service;
 
+    @BeforeEach
+    void setUp() {
+        neonNightsTapeResponse = new TapeResponse(
+            TAPE_ID, "NEON NIGHTS", "The City Never Sleeps",
+            LocalDate.of(1987, 1, 1), ACTION_GENRE_DETAILS, 6_840_000,
+            new TapeColorsDto("#ff006e", "#8338ec", "#ffbe0b", "#1a1a2e"),
+            TapePattern.RETRO_BLOCKS, CREATED, MODIFIED, null);
+    }
+
     @Test
     void listReturnsEveryTapeWithItsGenreExpanded() throws Exception {
-        when(service.list()).thenReturn(List.of(NEON_NIGHTS));
+        when(service.list()).thenReturn(List.of(neonNightsTapeResponse));
 
         mvc.perform(get("/api/tapes"))
             .andExpect(status().isOk())
@@ -87,7 +89,7 @@ class TapeControllerTest {
 
     @Test
     void patternIsWrittenAsItsKebabCaseWireValue() throws Exception {
-        when(service.get(TAPE_ID)).thenReturn(NEON_NIGHTS);
+        when(service.get(TAPE_ID)).thenReturn(neonNightsTapeResponse);
 
         // web-portal expects "retro-blocks"; the constant name RETRO_BLOCKS must never reach it.
         mvc.perform(get("/api/tapes/{id}", TAPE_ID))
@@ -97,7 +99,7 @@ class TapeControllerTest {
 
     @Test
     void getReturnsTheWholeTape() throws Exception {
-        when(service.get(TAPE_ID)).thenReturn(NEON_NIGHTS);
+        when(service.get(TAPE_ID)).thenReturn(neonNightsTapeResponse);
 
         mvc.perform(get("/api/tapes/{id}", TAPE_ID))
             .andExpect(status().isOk())
@@ -106,6 +108,23 @@ class TapeControllerTest {
             .andExpect(jsonPath("$.duration").value(6_840_000))
             .andExpect(jsonPath("$.colors.primary").value("#ff006e"))
             .andExpect(jsonPath("$.colors.label").value("#1a1a2e"));
+    }
+
+    @Test
+    void theLifecycleStampsAreWrittenAsIso8601InstantsAndReleaseDateStaysADate() throws Exception {
+        when(service.get(TAPE_ID)).thenReturn(neonNightsTapeResponse);
+
+        mvc.perform(get("/api/tapes/{id}", TAPE_ID))
+            .andExpect(status().isOk())
+            // releaseDate is a calendar day; the lifecycle stamps are instants. Different questions,
+            // deliberately different wire formats.
+            .andExpect(jsonPath("$.releaseDate").value("1987-01-01"))
+            .andExpect(jsonPath("$.createdAt").value("2026-09-10T12:00:00Z"))
+            .andExpect(jsonPath("$.modifiedAt").value("2026-09-11T09:30:00Z"))
+            // A tape that can be read has not been deleted, so this is always absent.
+            .andExpect(jsonPath("$.deletedAt").doesNotExist())
+            // The nested genre carries its own stamps, on the same terms.
+            .andExpect(jsonPath("$.genre.createdAt").value("2026-09-10T12:00:00Z"));
     }
 
     @Test
@@ -129,7 +148,7 @@ class TapeControllerTest {
 
     @Test
     void createReturns201WithALocationHeader() throws Exception {
-        when(service.create(any())).thenReturn(NEON_NIGHTS);
+        when(service.create(any())).thenReturn(neonNightsTapeResponse);
 
         mvc.perform(post("/api/tapes").contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
             .andExpect(status().isCreated())
@@ -204,7 +223,7 @@ class TapeControllerTest {
 
     @Test
     void replaceReturnsTheUpdatedTape() throws Exception {
-        when(service.replace(eq(TAPE_ID), any())).thenReturn(NEON_NIGHTS);
+        when(service.replace(eq(TAPE_ID), any())).thenReturn(neonNightsTapeResponse);
 
         mvc.perform(put("/api/tapes/{id}", TAPE_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
@@ -240,7 +259,7 @@ class TapeControllerTest {
 
     @Test
     void patchAcceptsASingleField() throws Exception {
-        when(service.patch(eq(TAPE_ID), any())).thenReturn(NEON_NIGHTS);
+        when(service.patch(eq(TAPE_ID), any())).thenReturn(neonNightsTapeResponse);
 
         // The difference from PUT: everything except the id is optional.
         mvc.perform(patch("/api/tapes/{id}", TAPE_ID)
@@ -253,7 +272,7 @@ class TapeControllerTest {
 
     @Test
     void patchAcceptsAnEmptyBody() throws Exception {
-        when(service.patch(eq(TAPE_ID), any())).thenReturn(NEON_NIGHTS);
+        when(service.patch(eq(TAPE_ID), any())).thenReturn(neonNightsTapeResponse);
 
         mvc.perform(patch("/api/tapes/{id}", TAPE_ID)
                 .contentType(MediaType.APPLICATION_JSON).content("{}"))

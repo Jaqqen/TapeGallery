@@ -1,30 +1,42 @@
 package com.jaqqen.tapeshub.genre.domain;
 
 import com.jaqqen.tapeshub.genre.GenreId;
+import com.jaqqen.tapeshub.shared.Lifecycle;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class GenreTest {
 
     private static final GenreName SCI_FI = new GenreName("Sci-Fi");
+    private Genre createdSciFi;
+    private GenreId createdGenreId;
+    private Genre existingSciFi;
+    private static final Instant NOON = Instant.parse("2026-09-10T12:00:00Z");
+    private static final Lifecycle STORED = new Lifecycle(NOON, NOON, null);
 
-    @Test
-    void createMintsItsOwnIdentity() {
-        Genre first = Genre.create(SCI_FI, "Speculative technology and futures.");
-        Genre second = Genre.create(SCI_FI, null);
-
-        assertThat(first.getId()).isNotNull();
-        // Identity is minted, never passed in - so two genres of the same name are still two genres.
-        assertThat(first.getId()).isNotEqualTo(second.getId());
+    @BeforeEach
+    void setUp() {
+        createdSciFi = Genre.create(SCI_FI, "Speculative technology and futures.");
+        createdGenreId = createdSciFi.getId();
+        existingSciFi = Genre.existing(GenreId.newId(), SCI_FI, "desc", STORED);
     }
 
     @Test
-    void createKeepsWhatItWasGiven() {
-        Genre genre = Genre.create(SCI_FI, "Speculative technology and futures.");
+    void testCorrectGenreIdCreation() {
+        Genre second = Genre.create(SCI_FI, null);
 
-        assertThat(genre.getName()).isEqualTo(SCI_FI);
-        assertThat(genre.getDescription()).isEqualTo("Speculative technology and futures.");
+        assertThat(createdGenreId).isNotNull();
+        assertThat(createdGenreId).isNotEqualTo(second.getId());
+    }
+
+    @Test
+    void checkCorrectnessOfGenreProperties() {
+        assertThat(createdSciFi.getName()).isEqualTo(SCI_FI);
+        assertThat(createdSciFi.getDescription()).isEqualTo("Speculative technology and futures.");
     }
 
     @Test
@@ -34,39 +46,66 @@ class GenreTest {
 
     @Test
     void existingCarriesThePersistedIdentity() {
-        GenreId id = GenreId.newId();
-
-        Genre genre = Genre.existing(id, SCI_FI, "desc");
+        final GenreId id = GenreId.newId();
+        final Genre genre = Genre.existing(id, SCI_FI, "desc", STORED);
 
         assertThat(genre.getId()).isEqualTo(id);
     }
 
     @Test
-    void renameChangesTheNameButNotTheIdentity() {
-        Genre genre = Genre.create(SCI_FI, "desc");
-        GenreId id = genre.getId();
-
-        Genre renamed = genre.rename(new GenreName("Science Fiction"));
-
-        assertThat(renamed.getName()).isEqualTo(new GenreName("Science Fiction"));
-        assertThat(renamed.getId()).isEqualTo(id);
-        // The operations mutate and return this, so callers can chain - they are not copies.
-        assertThat(renamed).isSameAs(genre);
+    void existingDoesNotModifyTheLifecycle() {
+        assertThat(existingSciFi.getLifecycle()).isEqualTo(STORED);
     }
 
     @Test
-    void describeReplacesTheDescription() {
-        Genre genre = Genre.create(SCI_FI, "old");
+    void createStartsWithNewLifecycle() {
+        assertThat(createdSciFi.getLifecycle().createdAt()).isEqualTo(createdSciFi.getLifecycle().modifiedAt());
+        assertThat(createdSciFi.getLifecycle().deletedAt()).isNull();
+        assertThat(createdSciFi.isDeleted()).isFalse();
+    }
 
-        assertThat(genre.describe("new").getDescription()).isEqualTo("new");
+    @Test
+    void testRenameAltersModifiedAt() {
+        existingSciFi.rename(new GenreName("Science Fiction"));
+
+        assertThat(existingSciFi.getLifecycle().createdAt()).isEqualTo(NOON);
+        assertThat(existingSciFi.getLifecycle().modifiedAt()).isAfter(NOON);
+    }
+
+    @Test
+    void testDescribe() {
+        existingSciFi.describe("new");
+
+        assertThat(existingSciFi.getLifecycle().createdAt()).isEqualTo(NOON);
+        assertThat(existingSciFi.getLifecycle().modifiedAt()).isAfter(NOON);
+        assertThat(existingSciFi.getDescription()).isEqualTo("new");
+    }
+
+    @Test
+    void checkConditionOfGenreAfterSoftDelete() {
+        final GenreId beforeDeleteId = existingSciFi.getId();
+        final Genre deleted = existingSciFi.softDelete();
+
+        assertThat(deleted).isSameAs(existingSciFi);
+        assertThat(existingSciFi.isDeleted()).isTrue();
+        assertThat(existingSciFi.getLifecycle().deletedAt()).isNotNull();
+        assertThat(existingSciFi.getId()).isEqualTo(beforeDeleteId);
+        assertThat(existingSciFi.getName()).isEqualTo(SCI_FI);
+        assertThat(existingSciFi.getDescription()).isEqualTo("desc");
+    }
+
+    @Test
+    void testThatRenameDoesNotChangeId() {
+        final GenreName newGenreName = new GenreName("Science Fiction");
+        final Genre renamed = createdSciFi.rename(newGenreName);
+
+        assertThat(renamed.getName()).isEqualTo(newGenreName);
+        assertThat(renamed.getId()).isEqualTo(createdGenreId);
+        assertThat(renamed).isSameAs(createdSciFi);
     }
 
     @Test
     void describeWithNullClearsTheDescription() {
-        Genre genre = Genre.create(SCI_FI, "old");
-
-        // GenreServiceImpl.replace() relies on this: a PUT without a description has to blank it out,
-        // not silently keep the previous one.
-        assertThat(genre.describe(null).getDescription()).isNull();
+        assertThat(createdSciFi.describe(null).getDescription()).isNull();
     }
 }

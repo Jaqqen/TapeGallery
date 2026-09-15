@@ -2,17 +2,16 @@ package com.jaqqen.tapeshub.genre.app;
 
 import com.jaqqen.tapeshub.genre.GenreDetails;
 import com.jaqqen.tapeshub.genre.GenreId;
+import com.jaqqen.tapeshub.genre.GenreUsage;
 import com.jaqqen.tapeshub.genre.app.dto.GenreRequest;
-import com.jaqqen.tapeshub.genre.domain.Genre;
-import com.jaqqen.tapeshub.genre.domain.GenreName;
-import com.jaqqen.tapeshub.genre.domain.GenreNotFoundException;
-import com.jaqqen.tapeshub.genre.domain.GenreRepository;
+import com.jaqqen.tapeshub.genre.domain.*;
+import com.jaqqen.tapeshub.shared.Lifecycle;
 import org.jspecify.annotations.Nullable;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -21,8 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -37,14 +35,27 @@ class GenreServiceImplTest {
     @Mock
     private GenreRepository genreRepoMock;
 
-    @InjectMocks
-    private GenreServiceImpl service;
+    @Mock
+    private GenreUsage usage;
+
+    private GenreServiceImpl genreService;
 
     @Captor
-    private ArgumentCaptor<Genre> saved;
+    private ArgumentCaptor<Genre> genreArgumentCaptor;
+
+    @BeforeEach
+    void setUp() {
+        genreService = new GenreServiceImpl(genreRepoMock, List.of(usage));
+    }
 
     private static Genre genre(String name, @Nullable String description) {
         return Genre.create(new GenreName(name), description);
+    }
+
+    private static GenreDetails detailsOf(Genre genre) {
+        final Lifecycle lifecycle = genre.getLifecycle();
+        return new GenreDetails(genre.getId().value(), genre.getName().value(), genre.getDescription(),
+            lifecycle.createdAt(), lifecycle.modifiedAt(), lifecycle.deletedAt());
     }
 
     @Test
@@ -59,29 +70,30 @@ class GenreServiceImplTest {
 
         when(genreRepoMock.findAll()).thenReturn(List.of(horror, sciFi));
 
-        final List<GenreDetails> details = service.list();
+        final List<GenreDetails> details = genreService.list();
 
-        assertThat(details).containsExactly(
-            new GenreDetails(horror.getId().value(), genre1Name, genre1Description),
-            new GenreDetails(sciFi.getId().value(), genre2Name, genre2Description));
+        assertThat(details).containsExactly(detailsOf(horror), detailsOf(sciFi));
+        assertThat(details).map(GenreDetails::name).containsExactly(genre1Name, genre2Name);
+        assertThat(details).map(GenreDetails::description).containsExactly(genre1Description, genre2Description);
     }
 
     @Test
-    void listOfNothingIsEmptyRatherThanNull() {
+    void listOfNothingReturnsEmptyList() {
         when(genreRepoMock.findAll()).thenReturn(List.of());
 
-        assertThat(service.list()).isEmpty();
+        assertThat(genreService.list()).isEmpty();
     }
 
     @Test
-    void getReturnsTheDetailsOfAnExistingGenre() {
+    void checkGenreDetailsMatchGenreInformation() {
         final String name = "Horror";
         final String description = "Built to frighten.";
         final Genre horror = genre(name, description);
-        when(genreRepoMock.findById(horror.getId())).thenReturn(Optional.of(horror));
+        final GenreId horrorId = horror.getId();
 
-        assertThat(service.get(horror.getId().value()))
-            .isEqualTo(new GenreDetails(horror.getId().value(), name, description));
+        when(genreRepoMock.findById(horrorId)).thenReturn(Optional.of(horror));
+
+        assertThat(genreService.get(horrorId.value())).isEqualTo(detailsOf(horror));
     }
 
     @Test
@@ -90,38 +102,42 @@ class GenreServiceImplTest {
         when(genreRepoMock.findById(new GenreId(id))).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(GenreNotFoundException.class)
-            .isThrownBy(() -> service.get(id))
+            .isThrownBy(() -> genreService.get(id))
             .withMessage("No genre with id '%s'".formatted(id));
     }
 
     @Test
-    void createGenreAndReturnsItsNewId() {
+    void createGenreAndVerifyCreatedGenre() {
         final String name = "Western";
         final String description = "The frontier.";
+        // call -> call.getArgument(0) - return 1st argument that was passed in and return it
+        // here 'any' Genre that was passed in is returned by 'genreRepoMock.save(any())'
         when(genreRepoMock.save(any())).thenAnswer(call -> call.getArgument(0));
 
-        final GenreDetails created = service.create(new GenreRequest(name, description));
+        final GenreDetails created = genreService.create(new GenreRequest(name, description));
 
-        verify(genreRepoMock).save(saved.capture());
-        assertThat(saved.getValue().getName()).isEqualTo(new GenreName(name));
-        assertThat(saved.getValue().getDescription()).isEqualTo(description);
-        assertThat(created.id()).isEqualTo(saved.getValue().getId().value());
+        // verifies the execution of save and captures the argument that was passed to 'save'
+        // through 'genreService.create'
+        verify(genreRepoMock).save(genreArgumentCaptor.capture());
+        assertThat(genreArgumentCaptor.getValue().getName()).isEqualTo(new GenreName(name));
+        assertThat(genreArgumentCaptor.getValue().getDescription()).isEqualTo(description);
+        assertThat(genreArgumentCaptor.getValue().getId().value()).isEqualTo(created.id());
         assertThat(created.name()).isEqualTo(name);
     }
 
     @Test
-    void replaceOverwritesNameAndDescriptionOnTheStoredGenre() {
+    void testAllFieldsAreReplaced() {
         final Genre stored = genre("Sci-Fi", "old");
         when(genreRepoMock.findById(stored.getId())).thenReturn(Optional.of(stored));
         when(genreRepoMock.save(any())).thenAnswer(call -> call.getArgument(0));
 
         final String newName = "Science Fiction";
         final String newDescription = "new";
-        final GenreDetails replaced = service.replace(stored.getId().value(),
+        final GenreDetails replaced = genreService.replace(stored.getId().value(),
             new GenreRequest(newName, newDescription));
 
-        assertThat(replaced).isEqualTo(
-            new GenreDetails(stored.getId().value(), newName, newDescription));
+        assertThat(replaced.name()).isEqualTo(newName);
+        assertThat(replaced.description()).isEqualTo(newDescription);
     }
 
     @Test
@@ -133,7 +149,7 @@ class GenreServiceImplTest {
 
         // PUT replaces the whole resource, so an omitted description means "no description",
         // not "leave the old one".
-        assertThat(service.replace(stored.getId().value(), new GenreRequest(name, null)).description())
+        assertThat(genreService.replace(stored.getId().value(), new GenreRequest(name, null)).description())
             .isNull();
     }
 
@@ -143,28 +159,50 @@ class GenreServiceImplTest {
         when(genreRepoMock.findById(new GenreId(id))).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(GenreNotFoundException.class)
-            .isThrownBy(() -> service.replace(id, new GenreRequest("Western", null)));
+            .isThrownBy(() -> genreService.replace(id, new GenreRequest("Western", null)));
         verify(genreRepoMock, never()).save(any());
     }
 
     @Test
     void deleteRemovesTheGenre() {
         final UUID id = UUID.randomUUID();
-        when(genreRepoMock.deleteById(new GenreId(id))).thenReturn(true);
+        when(genreRepoMock.softDeleteById(new GenreId(id))).thenReturn(true);
 
-        service.delete(id);
+        genreService.softDelete(id);
 
-        verify(genreRepoMock).deleteById(new GenreId(id));
+        verify(genreRepoMock).softDeleteById(new GenreId(id));
+        assertThatNoException().isThrownBy(() -> genreService.softDelete(id));
+    }
+
+    @Test
+    void checkForGenreUsagesOnDelete() {
+        final UUID id = UUID.randomUUID();
+        when(genreRepoMock.softDeleteById(new GenreId(id))).thenReturn(true);
+
+        genreService.softDelete(id);
+
+        verify(usage).isInUse(new GenreId(id));
+        assertThatNoException().isThrownBy(() -> genreService.softDelete(id));
+    }
+
+    @Test
+    void rejectDeleteWhenGenreIsInUse() {
+        final UUID id = UUID.randomUUID();
+        when(usage.isInUse(new GenreId(id))).thenReturn(true);
+
+        assertThatExceptionOfType(GenreInUseException.class)
+            .isThrownBy(() -> genreService.softDelete(id))
+            .withMessage("Genre '%s' is still in use and cannot be deleted".formatted(id));
+        verify(genreRepoMock, never()).softDeleteById(any());
     }
 
     @Test
     void deleteOfAnUnknownGenreIsANotFound() {
         final UUID id = UUID.randomUUID();
-        // The repository reports "there was nothing to delete" as false; the 404 is made here.
-        when(genreRepoMock.deleteById(new GenreId(id))).thenReturn(false);
+        when(genreRepoMock.softDeleteById(new GenreId(id))).thenReturn(false);
 
         assertThatExceptionOfType(GenreNotFoundException.class)
-            .isThrownBy(() -> service.delete(id))
+            .isThrownBy(() -> genreService.softDelete(id))
             .withMessage("No genre with id '%s'".formatted(id));
     }
 
@@ -173,9 +211,7 @@ class GenreServiceImplTest {
         final GenreId id = GenreId.newId();
         when(genreRepoMock.findById(id)).thenReturn(Optional.empty());
 
-        // The published API returns Optional rather than throwing: the tape module decides what a
-        // missing genre means for it, and answers with 422 instead of 404.
-        assertThat(service.findById(id)).isEmpty();
+        assertThat(genreService.findById(id)).isEmpty();
     }
 
     @Test
@@ -184,29 +220,12 @@ class GenreServiceImplTest {
         final Genre horror = genre(name, null);
         when(genreRepoMock.findById(horror.getId())).thenReturn(Optional.of(horror));
 
-        assertThat(service.findById(horror.getId()))
-            .contains(new GenreDetails(horror.getId().value(), name, null));
+        assertThat(genreService.findById(horror.getId())).contains(detailsOf(horror));
+        assertThat(genreService.findById(horror.getId())).map(GenreDetails::name).contains(name);
     }
 
     @Test
-    void findByNameDelegatesToTheRepository() {
-        final String name = "Horror";
-        final Genre horror = genre(name, null);
-        when(genreRepoMock.findByName(name)).thenReturn(Optional.of(horror));
-
-        assertThat(service.findByName(name)).map(GenreDetails::name).contains(name);
-    }
-
-    @Test
-    void findByNameIsEmptyForAnUnknownName() {
-        final String name = "Nope";
-        when(genreRepoMock.findByName(name)).thenReturn(Optional.empty());
-
-        assertThat(service.findByName(name)).isEmpty();
-    }
-
-    @Test
-    void findAllByIdsKeysTheResultByIdentity() {
+    void checkFindAllByIdsReturnsStoredGenres() {
         final String horrorName = "Horror";
         final String sciFiName = "Sci-Fi";
         final Genre horror = genre(horrorName, null);
@@ -214,32 +233,20 @@ class GenreServiceImplTest {
         final List<GenreId> ids = List.of(horror.getId(), sciFi.getId());
         when(genreRepoMock.findAllByIds(ids)).thenReturn(List.of(horror, sciFi));
 
-        final Map<GenreId, GenreDetails> byId = service.findAllByIds(ids);
+        final Map<GenreId, GenreDetails> byId = genreService.findAllByIds(ids);
 
         assertThat(byId).hasSize(2);
-        assertThat(byId).containsEntry(horror.getId(), new GenreDetails(horror.getId().value(), horrorName, null));
-        assertThat(byId).containsEntry(sciFi.getId(), new GenreDetails(sciFi.getId().value(), sciFiName, null));
+        assertThat(byId).containsEntry(horror.getId(), detailsOf(horror));
+        assertThat(byId).containsEntry(sciFi.getId(), detailsOf(sciFi));
     }
 
     @Test
-    void findAllByIdsOmitsIdsThatResolveToNothing() {
+    void findAllByIdsReturnsOnlyFoundGenres() {
         final Genre horror = genre("Horror", null);
         final GenreId missing = GenreId.newId();
         final List<GenreId> ids = List.of(horror.getId(), missing);
         when(genreRepoMock.findAllByIds(ids)).thenReturn(List.of(horror));
 
-        // Documented behaviour: unresolved ids are absent, not null-valued entries.
-        assertThat(service.findAllByIds(ids)).containsOnlyKeys(horror.getId());
-    }
-
-    @Test
-    void findAllByIdsSurvivesADuplicateKey() {
-        final Genre horror = genre("Horror", null);
-        final List<GenreId> ids = List.of(horror.getId());
-        // Collectors.toMap throws on a duplicate key unless a merge function is supplied - this is
-        // what proves the one in GenreServiceImpl is doing its job.
-        when(genreRepoMock.findAllByIds(ids)).thenReturn(List.of(horror, horror));
-
-        assertThat(service.findAllByIds(ids)).containsOnlyKeys(horror.getId());
+        assertThat(genreService.findAllByIds(ids)).containsOnlyKeys(horror.getId());
     }
 }

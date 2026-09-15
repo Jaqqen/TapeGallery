@@ -9,7 +9,9 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
-/** The JPA adapter behind {@link TapeRepository}. */
+/**
+ * The JPA adapter behind {@link TapeRepository}.
+ */
 @Repository
 class JpaTapeRepository implements TapeRepository {
 
@@ -21,12 +23,12 @@ class JpaTapeRepository implements TapeRepository {
 
     @Override
     public List<Tape> findAll() {
-        return entities.findAll(Sort.by("title")).stream().map(TapeMapper::toDomain).toList();
+        return entities.findAllByDeletedAtIsNull(Sort.by("title")).stream().map(TapeMapper::toDomain).toList();
     }
 
     @Override
     public Optional<Tape> findById(TapeId id) {
-        return entities.findById(id.value()).map(TapeMapper::toDomain);
+        return entities.findByIdAndDeletedAtIsNull(id.value()).map(TapeMapper::toDomain);
     }
 
     @Override
@@ -37,10 +39,11 @@ class JpaTapeRepository implements TapeRepository {
 
     @Override
     public boolean deleteById(TapeId id) {
-        if (!entities.existsById(id.value())) {
+        Optional<TapeEntity> row = entities.findByIdAndDeletedAtIsNull(id.value());
+        if (row.isEmpty()) {
             return false;
         }
-        entities.deleteById(id.value());
+        save(TapeMapper.toDomain(row.get()).softDelete());
         return true;
     }
 }

@@ -1,6 +1,7 @@
 package com.jaqqen.tapeshub.tape.domain;
 
 import com.jaqqen.tapeshub.genre.GenreId;
+import com.jaqqen.tapeshub.shared.Lifecycle;
 import lombok.Getter;
 import org.jmolecules.ddd.types.AggregateRoot;
 import org.jspecify.annotations.Nullable;
@@ -9,10 +10,6 @@ import java.time.LocalDate;
 
 /**
  * A tape - audio or video - and the aggregate root of this module.
- *
- * <p>Built through {@link #create} - which auto generates the id - or {@link #existing}, which rebuilds
- * one the database already holds. Changes go through the named operations to enforce business rules set
- * by Tape.
  */
 @Getter
 public class Tape implements AggregateRoot<Tape, TapeId> {
@@ -26,9 +23,10 @@ public class Tape implements AggregateRoot<Tape, TapeId> {
     private TapeDuration duration;
     private Colors colors;
     private TapePattern pattern;
+    private Lifecycle lifecycle;
 
     private Tape(TapeId id, TapeTitle title, @Nullable TapeTitle subtitle, LocalDate releaseDate, GenreId genre,
-                 TapeDuration duration, Colors colors, TapePattern pattern) {
+                 TapeDuration duration, Colors colors, TapePattern pattern, Lifecycle lifecycle) {
         this.id = id;
         this.title = title;
         this.subtitle = subtitle;
@@ -37,53 +35,58 @@ public class Tape implements AggregateRoot<Tape, TapeId> {
         this.duration = duration;
         this.colors = colors;
         this.pattern = pattern;
+        this.lifecycle = lifecycle;
     }
 
     public static Tape create(TapeTitle title, @Nullable TapeTitle subtitle, LocalDate releaseDate, GenreId genre,
                               TapeDuration duration, Colors colors, TapePattern pattern) {
-        return new Tape(TapeId.newId(), title, subtitle, releaseDate, genre, duration, colors, pattern);
+        return new Tape(TapeId.newId(), title, subtitle, releaseDate, genre, duration, colors, pattern,
+            Lifecycle.start());
     }
 
     public static Tape existing(TapeId id, TapeTitle title, @Nullable TapeTitle subtitle, LocalDate releaseDate,
-                                GenreId genre, TapeDuration duration, Colors colors, TapePattern pattern) {
-        return new Tape(id, title, subtitle, releaseDate, genre, duration, colors, pattern);
+                                GenreId genre, TapeDuration duration, Colors colors, TapePattern pattern,
+                                Lifecycle lifecycle) {
+        return new Tape(id, title, subtitle, releaseDate, genre, duration, colors, pattern, lifecycle);
     }
 
     public Tape rename(TapeTitle title) {
         this.title = title;
-        return this;
+        return modify();
     }
 
     public Tape resubtitle(@Nullable TapeTitle subtitle) {
         if (subtitle != null) {
             this.subtitle = subtitle;
+            return modify();
         }
+        // Nothing was replaced, so nothing was modified.
         return this;
     }
 
     public Tape releasedOn(LocalDate releaseDate) {
         this.releaseDate = releaseDate;
-        return this;
+        return modify();
     }
 
     public Tape reclassify(GenreId genre) {
         this.genre = genre;
-        return this;
+        return modify();
     }
 
     public Tape runsFor(TapeDuration duration) {
         this.duration = duration;
-        return this;
+        return modify();
     }
 
     public Tape recolour(Colors colors) {
         this.colors = colors;
-        return this;
+        return modify();
     }
 
     public Tape restyle(TapePattern pattern) {
         this.pattern = pattern;
-        return this;
+        return modify();
     }
 
     public Tape replaceWith(TapeTitle title, @Nullable TapeTitle subtitle, LocalDate releaseDate, GenreId genre,
@@ -95,5 +98,19 @@ public class Tape implements AggregateRoot<Tape, TapeId> {
             .runsFor(duration)
             .recolour(colors)
             .restyle(pattern);
+    }
+
+    public Tape softDelete() {
+        this.lifecycle = lifecycle.delete();
+        return this;
+    }
+
+    public boolean isDeleted() {
+        return lifecycle.isDeleted();
+    }
+
+    private Tape modify() {
+        this.lifecycle = lifecycle.modify();
+        return this;
     }
 }

@@ -1,10 +1,12 @@
 package com.jaqqen.tapeshub.tape.app.dto;
 
 import com.jaqqen.tapeshub.genre.GenreDetails;
+import com.jaqqen.tapeshub.shared.Lifecycle;
 import com.jaqqen.tapeshub.tape.domain.Tape;
 import com.jaqqen.tapeshub.tape.domain.TapePattern;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -22,10 +24,14 @@ public record TapeResponse(
     GenreDetails genre,
     int duration,
     TapeColorsDto colors,
-    TapePattern pattern
+    TapePattern pattern,
+    Instant createdAt,
+    Instant modifiedAt,
+    @Nullable Instant deletedAt
 ) {
 
     public static TapeResponse from(Tape tape, GenreDetails genre) {
+        Lifecycle lifecycle = tape.getLifecycle();
         return new TapeResponse(
             tape.getId().value(),
             tape.getTitle().value(),
@@ -34,6 +40,9 @@ public record TapeResponse(
             genre,
             tape.getDuration().milliseconds(),
             TapeColorsDto.from(tape.getColors()),
-            tape.getPattern());
+            tape.getPattern(),
+            lifecycle.createdAt(),
+            lifecycle.modifiedAt(),
+            lifecycle.deletedAt());
     }
 }

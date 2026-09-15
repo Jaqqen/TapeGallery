@@ -6,6 +6,16 @@ export interface GenreDetails {
     id: string;
     name: string;
     description: string | null;
+    /** ISO-8601 instant, e.g. "2026-09-10T12:00:00Z". When the genre was first stored. */
+    createdAt: string;
+    /** ISO-8601 instant. When it last changed. */
+    modifiedAt: string;
+    /**
+     * Always null over the wire: tapes-hub deletes are soft, and a deleted genre is filtered out of
+     * every response before it gets here. Declared so the shape matches the API rather than a subset
+     * of it.
+     */
+    deletedAt: string | null;
 }
 
 interface TapeResponse {
@@ -20,6 +30,15 @@ interface TapeResponse {
     colors: Tape["colors"];
     /** via @JsonValue. */
     pattern: Tape["pattern"];
+    /**
+     * ISO-8601 instant. Not to be confused with `releaseDate`: that is when the film came out, this
+     * is when the catalogue entry was written.
+     */
+    createdAt: string;
+    /** ISO-8601 instant. When the catalogue entry last changed. */
+    modifiedAt: string;
+    /** Always null over the wire - see {@link GenreDetails.deletedAt}. */
+    deletedAt: string | null;
 }
 
 /** Body of `POST /api/tapes`. A tape names its genre by id; genres are their own resource. */
