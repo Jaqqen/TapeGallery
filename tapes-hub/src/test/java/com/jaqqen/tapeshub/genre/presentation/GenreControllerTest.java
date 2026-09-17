@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * mocked - what a genre <em>is</em> belongs to the tests further in.
  *
  * <p>Filters are off: the chain in {@code SecurityConfig} is the config module's, and
- * {@code SecurityConfigTest} is where it is checked.
+ * {@code SecurityConfigIT} is where it is checked.
  */
 @WebMvcTest(GenreController.class)
 @AutoConfigureMockMvc(addFilters = false)

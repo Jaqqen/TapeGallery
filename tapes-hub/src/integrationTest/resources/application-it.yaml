@@ -1,0 +1,7 @@
+# Deliberately not the dev profile: application-dev.yaml adds classpath:db/seed (12 tapes that
+# would skew every list assertion) and resolves credentials from a gitignored .env.
+spring:
+  security:
+    user:
+      name: integration
+      password: integration

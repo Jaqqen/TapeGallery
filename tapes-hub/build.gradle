@@ -79,6 +79,39 @@ contracts {
     failOnNoContracts = false
 }
 
+sourceSets {
+    integrationTest {
+        compileClasspath += sourceSets.main.output + sourceSets.test.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.test.output
+    }
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestCompileOnly.extendsFrom testCompileOnly
+    integrationTestAnnotationProcessor.extendsFrom testAnnotationProcessor
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+tasks.register('integrationTest', Test) {
+    group = 'verification'
+    description = 'Request to response tests throguh proper HTTP requests on REST API'
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    // Unit failures are cheaper to read, so surface them first.
+    shouldRunAfter tasks.named('test')
+    doFirst {
+        println("↳ integrationTest start 🚀")
+    }
+    doLast {
+        println("↳ integrationTest end 🏁")
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('integrationTest')
+}
+
 // Hand Mockito's inline mock maker its agent at JVM startup, so it does not
 // self-attach one at runtime - a fallback that future JDKs will disallow.
 tasks.withType(Test).configureEach {
