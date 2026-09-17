@@ -13,6 +13,9 @@ concurrency:
 
 permissions:
   contents: read
+  # configuration needed to publish reports with mikepenz/action-junit-report
+  checks: write
+  pull-requests: write
 
 jobs:
   backend:
@@ -47,3 +50,14 @@ jobs:
             tapes-hub/build/test-results/
           retention-days: 14
           if-no-files-found: ignore
+
+      - name: Publish test report
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@v6
+        with:
+          report_paths: tapes-hub/build/test-results/**/*.xml
+          check_name: tapes-hub test results
+          detailed_summary: true
+          include_passed: true
+          # when it's a fork PR only annotate, no check runs needed
+          annotate_only: ${{ github.event.pull_request.head.repo.fork == true }}
