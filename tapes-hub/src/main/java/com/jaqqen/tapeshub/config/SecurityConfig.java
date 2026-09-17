@@ -45,7 +45,11 @@ public class SecurityConfig {
     @Profile("!dev")
     SecurityFilterChain defaultFilterChain(HttpSecurity http) {
         return http
-            .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+            .authorizeHttpRequests(auth -> auth
+                // without this an unhandled failure comes back as a 401 from
+                // the error dispatch, hiding the actual status behind a login prompt.
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                .anyRequest().authenticated())
             .httpBasic(Customizer.withDefaults())
             .build();
     }

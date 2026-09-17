@@ -1,30 +1,23 @@
 package com.jaqqen.tapeshub.config;
 
-import com.jaqqen.tapeshub.TestcontainersConfiguration;
+import com.jaqqen.tapeshub.support.ApiIntegrationTest;
 import com.jaqqen.tapeshub.support.TapeRequests;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.client.RestTestClient;
 
 import java.util.UUID;
 
 /**
- * Integration-test specific config.
+ * Tests that:
+ * <ul>
+ *   <li>Authentication is enforced on all endpoints
+ *   <li>Invalid credentials are rejected
+ *   <li>CSRF tokens are required for write operations
+ *   <li>Tokens are bound to their session
+ *   <li>Valid credentials with correct CSRF tokens are allowed through
+ * </ul>
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureRestTestClient
-@ActiveProfiles("it")
-@Import(TestcontainersConfiguration.class)
-class SecurityConfigIT {
-
-    @Autowired
-    private RestTestClient client;
+class SecurityConfigIT extends ApiIntegrationTest {
 
     @Test
     void anAnonymousReadIsRejectedWith401() {
@@ -36,7 +29,7 @@ class SecurityConfigIT {
     @Test
     void theWrongCredentialsAreRejectedWith401() {
         client.get().uri("/api/tapes")
-            .headers(headers -> headers.setBasicAuth("integration", "not-the-password"))
+            .headers(headers -> headers.setBasicAuth(user, "not-the-password"))
             .exchange()
             .expectStatus().isUnauthorized();
     }
@@ -44,32 +37,80 @@ class SecurityConfigIT {
     @Test
     void validBasicCredentialsGetThrough() {
         client.get().uri("/api/tapes")
-            .headers(this::authenticate)
+            .headers(this::basicAuthHeader)
             .exchange()
             .expectStatus().isOk();
+    }
+
+    @Test
+    void theTokenEndpointIsItselfBehindAuthentication() {
+        client.get().uri(CSRF_ENDPOINT)
+            .exchange()
+            .expectStatus().isUnauthorized();
     }
 
     /**
      * Tests that:
      * <ul>
-     *   <li>POST requests to /api/tapes are rejected with 401
-     *   <li>CSRF filter runs before authentication in the default chain
-     *   <li>Valid credentials are never checked due to missing CSRF token
+     *   <li>POST requests without a CSRF token are rejected with 403 (not 401)
+     *   <li>Rejection happens before credentials are validated
+     *   <li>CSRF failure is treated as access denied, not an authentication failure like 401
      * </ul>
-     */
+    */
     @Test
-    void aWriteIsRejectedWith401BeforeItsValidCredentialsAreEvenChecked() {
+    void aWriteWithoutATokenIsRejectedBeforeItsValidCredentialsAreEvenChecked() {
         UUID unknownGenre = UUID.randomUUID();
 
         client.post().uri("/api/tapes")
-            .headers(this::authenticate)
+            .headers(this::basicAuthHeader)
             .contentType(MediaType.APPLICATION_JSON)
             .body(TapeRequests.tape(unknownGenre, "Neon Nights"))
             .exchange()
-            .expectStatus().isUnauthorized();
+            .expectStatus().isForbidden();
     }
 
-    private void authenticate(HttpHeaders headers) {
-        headers.setBasicAuth("integration", "integration");
+    /** The token is kept in the session, so presenting it without that session proves nothing. */
+    @Test
+    void aWriteCarryingTheTokenButNotItsSessionIsRejected() {
+        Csrf csrf = csrf();
+
+        client.post().uri("/api/genres")
+            .headers(this::basicAuthHeader)
+            .header(csrf.token().headerName(), csrf.token().token())
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(TapeRequests.genre("Horror"))
+            .exchange()
+            .expectStatus().isForbidden();
+    }
+
+    /** A token from one session is not a token for another. */
+    @Test
+    void aWriteCarryingAnotherSessionsTokenIsRejected() {
+        Csrf mine = csrf();
+        Csrf someoneElse = csrf();
+
+        client.post().uri("/api/genres")
+            .headers(this::basicAuthHeader)
+            .header(mine.token().headerName(), someoneElse.token().token())
+            .cookie(SESSION_COOKIE, mine.sessionId())
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(TapeRequests.genre("Horror"))
+            .exchange()
+            .expectStatus().isForbidden();
+    }
+
+    /** The positive half: token and session together, and the write lands. */
+    @Test
+    void aWriteCarryingBothTheTokenAndItsSessionSucceeds() {
+        Csrf csrf = csrf();
+
+        client.post().uri("/api/genres")
+            .headers(this::basicAuthHeader)
+            .header(csrf.token().headerName(), csrf.token().token())
+            .cookie(SESSION_COOKIE, csrf.sessionId())
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(TapeRequests.genre("Horror"))
+            .exchange()
+            .expectStatus().isCreated();
     }
 }
