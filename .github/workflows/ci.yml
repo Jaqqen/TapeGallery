@@ -38,7 +38,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Build, test and integration-test
-        run: ./gradlew build --continue --no-daemon
+        run: |
+          ./gradlew wrapper --distribution-type bin;
+          ./gradlew build --continue --no-daemon
 
       - name: Upload test reports
         if: ${{ !cancelled() }}
