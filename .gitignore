@@ -1,13 +1,3 @@
 # IDEA
 .idea/workspace*
 *.iml
-
-# NODE
-node_modules
-
-# Packages
-package-lock.json
-
-# Project
-.pids
-dist

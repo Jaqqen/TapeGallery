@@ -84,7 +84,6 @@ export default function VhsTapeDetail({tape, onClose}: TapeDetailProps) {
                                 <div className="tape-info-strip">
                                     <span className="tape-year">{tape.year}</span>
                                     <span className="tape-genre">{tape.genre}</span>
-                                    <span className="tape-rating">{tape.rating}</span>
                                 </div>
                             </div>
                         </motion.div>
@@ -118,7 +117,6 @@ export default function VhsTapeDetail({tape, onClose}: TapeDetailProps) {
                         </button>
 
                         <div className="detail-header">
-                            <div className="detail-rating-badge">{tape.rating}</div>
                             <div className="detail-meta">
                                 <span>{tape.year}</span>
                                 <span className="meta-dot"/>
@@ -130,8 +128,6 @@ export default function VhsTapeDetail({tape, onClose}: TapeDetailProps) {
 
                         <h2 className="detail-title">{tape.title}</h2>
                         {tape.subtitle && <p className="detail-subtitle">{tape.subtitle}</p>}
-
-                        <p className="detail-description">{tape.description}</p>
 
                         <div className="detail-actions">
                             <button className="detail-btn detail-btn-play">
