@@ -6,6 +6,7 @@ import org.springframework.util.Assert;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 
 /**
  * A container to store alterations such as creation date, modification date or deletion date (eventually, even the user
@@ -41,7 +42,7 @@ public record Lifecycle(Instant createdAt, Instant modifiedAt, @Nullable Instant
      */
     public Lifecycle delete() {
         final Instant now = nowInMicros();
-        return new Lifecycle(createdAt, now, now);
+        return new Lifecycle(createdAt, now, Objects.requireNonNullElse(deletedAt, now));
     }
 
     public boolean isDeleted() {

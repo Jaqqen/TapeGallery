@@ -109,7 +109,7 @@ class GenreApiIT extends ApiIntegrationTest {
     }
 
     @Test
-    void aGenreWhoseOnlyTapeHasBeenDeletedCanItselfBeDeleted() {
+    void testSuccessfulSoftDeleteOfGenreAfterTapeWasSoftDeleted() {
         UUID genreId = createGenre("Action");
         UUID tapeId = createTape(genreId, "Neon Nights");
 

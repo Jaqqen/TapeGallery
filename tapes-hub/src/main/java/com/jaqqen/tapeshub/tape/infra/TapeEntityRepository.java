@@ -13,5 +13,6 @@ interface TapeEntityRepository extends JpaRepository<TapeEntity, UUID> {
 
     Optional<TapeEntity> findByIdAndDeletedAtIsNull(UUID id);
 
-    boolean existsByGenreId(UUID genreId);
+    boolean existsByGenreIdAndDeletedAtIsNull(UUID genreId);
+
 }

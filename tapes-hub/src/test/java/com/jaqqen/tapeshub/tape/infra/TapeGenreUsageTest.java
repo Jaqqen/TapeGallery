@@ -47,17 +47,17 @@ class TapeGenreUsageTest {
     @Autowired
     private TestEntityManager em;
 
-    private GenreId action;
+    private GenreId actionGenreId;
 
     @BeforeEach
     void insertTheGenreATapeNeeds() {
-        action = GenreId.newId();
+        actionGenreId = GenreId.newId();
         em.getEntityManager()
             .createNativeQuery("""
                 INSERT INTO genre (id, name, description, created_at, modified_at)
                 VALUES (?1, ?2, NULL, ?3, ?3)
                 """)
-            .setParameter(1, action.value())
+            .setParameter(1, actionGenreId.value())
             .setParameter(2, "Action")
             .setParameter(3, Instant.now())
             .executeUpdate();
@@ -65,13 +65,13 @@ class TapeGenreUsageTest {
     }
 
     private Tape save() {
-        return tapes.save(Tape.create(new TapeTitle("NEON NIGHTS"), null, RELEASED, action,
+        return tapes.save(Tape.create(new TapeTitle("NEON NIGHTS"), null, RELEASED, actionGenreId,
             new TapeDuration(6_840_000), COLORS, TapePattern.STRIPES));
     }
 
     @Test
     void aGenreNoTapeReferencesIsNotInUse() {
-        assertThat(usage.isInUse(action)).isFalse();
+        assertThat(usage.isInUse(actionGenreId)).isFalse();
     }
 
     @Test
@@ -79,20 +79,20 @@ class TapeGenreUsageTest {
         save();
         em.flush();
 
-        assertThat(usage.isInUse(action)).isTrue();
+        assertThat(usage.isInUse(actionGenreId)).isTrue();
     }
 
     @Test
-    void aGenreOnlyDeletedTapesReferenceIsNotInUse() {
+    void aGenreIsNotInUseWhenItsUsagesHaveBeenSoftDeleted() {
         Tape neon = save();
         em.flush();
 
         tapes.deleteById(neon.getId());
         em.flush();
 
-        // Deleted tapes are invisible everywhere else; holding a genre hostage would be the one
-        // place they were not.
-        assertThat(usage.isInUse(action)).isFalse();
+        // Deleted tapes are marked as deleted but not gone
+        // Still, genres are not marked as in use to prevent confusion
+        assertThat(usage.isInUse(actionGenreId)).isFalse();
     }
 
     @Test
