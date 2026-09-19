@@ -18,6 +18,6 @@ class TapeGenreUsage implements GenreUsage {
 
     @Override
     public boolean isInUse(GenreId id) {
-        return tapes.existsByGenreId(id.value());
+        return tapes.existsByGenreIdAndDeletedAtIsNull(id.value());
     }
 }
