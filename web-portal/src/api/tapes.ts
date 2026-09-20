@@ -62,6 +62,10 @@ interface CsrfTokenResponse {
 
 /**
  * Raised when tapes-hub asks for credentials the browser has not supplied.
+ *
+ * TODO: nothing in the portal prompts - credentials are left to the browser's native Basic dialog,
+ * raised by the `WWW-Authenticate` header on the 401. Replace with an in-portal login holding the
+ * `Authorization` header in memory, or gate writes out of non-dev builds.
  */
 export class AuthenticationRequiredError extends Error {
     constructor(message = "Sign in to change the catalogue.") {
@@ -138,6 +142,8 @@ export async function fetchGenres(signal?: AbortSignal): Promise<GenreDetails[]>
 }
 
 async function fetchCsrfToken(signal?: AbortSignal): Promise<CsrfTokenResponse> {
+    // Fetched per write, never cached: Basic re-authenticates on every request and
+    // CsrfAuthenticationStrategy rotates the token each time it does.
     const response: Response = await fetch("/api/csrf", {
         // The token is bound to JSESSIONID and only counts alongside the session that issued it.
         credentials: "same-origin",
