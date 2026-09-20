@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    # JDBC form, i.e. jdbc:postgresql://host:5432/tapeshub.
+    url: ${DATABASE_URL}
+    # No defaults for credentials to prevent silent healthy startups.
+    username: ${DATABASE_USER}
+    password: ${DATABASE_PASSWORD}
+  security:
+    user:
+      # The single account allowed to write. Reads need no account at all - see SecurityConfig.
+      name: ${ADMIN_USER}
+      password: ${ADMIN_PASSWORD}
+
+server:
+  # Let Spring MVC handle forward-headers. Without this, a created tape is forwarded as
+  # http://<container>:8080 instead of the public origin.
+  forward-headers-strategy: framework
+
+# Flyway is inherited (classpath:db/migration) but initial data remains DEV-only

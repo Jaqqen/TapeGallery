@@ -4,22 +4,23 @@
 FROM eclipse-temurin:25-jdk AS build
 WORKDIR /workspace
 
-COPY gradlew \
-    settings.gradle \
-    build.gradle \
-    gradle src ./
+COPY gradlew settings.gradle build.gradle ./
+COPY gradle gradle
+COPY src/main src/main
 
 ARG bootJarFilename=bootJar-filename.txt
-# The mount=type=cache intercepts the build to keep downloaded dependencies safe for the next build
-RUN ./gradlew wrapper --distribution-type bin && \
-    --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon -PdockerfileBootJarFilename=${bootJarFilename} bootJar
+# bootJar writes its own archive name into build/${bootJarFilename} (see build.gradle), which is
+# what saves the steps below from globbing.
+# The mount=type=cache keeps dependencies and the Gradle distribution for the next build.
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew wrapper --distribution-type bin && \
+    ./gradlew --no-daemon -PdockerfileBootJarFilename=${bootJarFilename} bootJar
 
-# 'jarmode=tools' with --'layers' makes it easier to navigate to the application jar file
-# without using wildcards since it's directly inside the 'application' directory
-ARG actualBootJarFilename="$(cat build/${bootJarFilename})"
-RUN app="build/libs/${actualBootJarFilename}" \
- && java -Djarmode=tools -jar "$app" extract --layers --destination extracted \
- && mv extracted/application/*.jar extracted/application/app.jar
+# 'jarmode=tools' with '--layers' makes it easier to navigate to the application jar file
+# without using wildcards since it's directly inside the 'application' directory.
+RUN app="build/libs/$(cat build/${bootJarFilename})" && \
+    java -Djarmode=tools -jar "$app" extract --layers --destination extracted && \
+    mv extracted/application/*.jar extracted/application/app.jar
 
 # --- runtime -----------------------------------------------------------------
 FROM eclipse-temurin:25-jre AS runtime
@@ -36,5 +37,7 @@ COPY --from=build --chown=tapeshub:tapeshub /workspace/extracted/application/ ./
 
 USER tapeshub
 EXPOSE 8080
+
+ENV SPRING_PROFILES_ACTIVE=prod
 
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=80.0", "-jar", "app.jar"]
