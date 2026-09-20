@@ -44,6 +44,22 @@ class SecurityConfigIT extends ApiIntegrationTest {
             .expectStatus().isForbidden();
     }
 
+    /** A platform probes this before it routes traffic, holding no credentials to offer. */
+    @Test
+    void theHealthProbesAnswerWithoutCredentials() {
+        client.get().uri("/actuator/health/readiness")
+            .exchange()
+            .expectStatus().isOk();
+    }
+
+    /** Health is the only endpoint exposed; the rest of actuator stays shut. */
+    @Test
+    void theRestOfActuatorIsNotReachable() {
+        client.get().uri("/actuator/env")
+            .exchange()
+            .expectStatus().isUnauthorized();
+    }
+
     @Test
     void theWrongCredentialsAreRejectedWith401() {
         client.get().uri("/api/tapes")
