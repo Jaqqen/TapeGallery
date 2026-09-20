@@ -1,0 +1,12 @@
+# Keeps the build context small
+build/
+.gradle/
+
+.env*
+
+.git*
+HELP.md
+*.md
+compose.yaml
+Dockerfile
+.dockerignore

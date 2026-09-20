@@ -1,3 +1,12 @@
+import java.text.SimpleDateFormat
+
+static def getBuildDate() {
+    def date = new SimpleDateFormat("yyyy-MM-dd")
+    // to ensure proper parsing
+    date.setLenient(false)
+    return date.format(new Date())
+}
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '4.1.0'
@@ -18,6 +27,18 @@ java {
 
 repositories {
     mavenCentral()
+}
+
+bootJar {
+    archiveFileName = "${getBuildDate()}-${project.name}-${version}.jar"
+
+    // print filename for Dockerfile to read and find correct jar file inside build/libs
+    def dockerFileBootJarFilenameProp = project.findProperty('dockerfileBootJarFilename')
+    if (dockerFileBootJarFilenameProp != null) {
+        doLast {
+            layout.buildDirectory.file("${dockerFileBootJarFilenameProp}").get().asFile.text = archiveFileName.get()
+        }
+    }
 }
 
 ext {
