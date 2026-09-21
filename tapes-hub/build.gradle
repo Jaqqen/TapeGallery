@@ -96,9 +96,8 @@ dependencyManagement {
 }
 
 contracts {
-    // No contracts are defined yet. Without this the plugin fails the whole build on the empty
-    // src/contractTest/resources/contracts directory, which it does before any test even runs.
-    failOnNoContracts = false
+    failOnNoContracts = true
+    baseClassForTests = 'com.jaqqen.tapeshub.contract.ApiContractBase'
 }
 
 sourceSets {
@@ -113,6 +112,13 @@ configurations {
     integrationTestCompileOnly.extendsFrom testCompileOnly
     integrationTestAnnotationProcessor.extendsFrom testAnnotationProcessor
     integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+
+    // The plugin creates the contractTest source set but gives it none of the test dependencies
+    // and the base class the generated tests extend needs them.
+    contractTestImplementation.extendsFrom testImplementation
+    contractTestCompileOnly.extendsFrom testCompileOnly
+    contractTestAnnotationProcessor.extendsFrom testAnnotationProcessor
+    contractTestRuntimeOnly.extendsFrom testRuntimeOnly
 }
 
 tasks.register('integrationTest', Test) {
