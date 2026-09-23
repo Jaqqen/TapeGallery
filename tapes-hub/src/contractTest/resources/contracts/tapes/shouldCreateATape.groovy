@@ -6,7 +6,7 @@ Contract.make {
     description """
 Creating a tape. The 201 carries the stored tape so the portal can put it straight on the shelf
 without refetching, and the Location header has to be absolute - behind a reverse proxy that is
-only true because of server.forward-headers-strategy in application-prod.yaml.
+only true because of server.forward-headers-strategy in application-remote.yaml.
 """
     request {
         method POST()

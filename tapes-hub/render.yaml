@@ -1,0 +1,20 @@
+# $schema: https://render.com/schema/render.yaml.json
+# Render Blueprint for tapes-hub.
+#
+# The image is the release artifact: CI publishes it to ghcr.io and Render pulls it.
+# The GHCR package must be public or Render needs registry credentials.
+#
+# To rollback change the tag: point `image.url` at ghcr.io/jaqqen/tapes-hub:<older version>.
+services:
+  - type: web
+    name: tapes-hub
+    runtime: image
+    plan: free
+    region: oregon
+    autoDeployTrigger: off
+    image:
+      url: ghcr.io/jaqqen/tapes-hub:latest
+    healthCheckPath: /actuator/health/readiness
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: remote

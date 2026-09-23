@@ -1,4 +1,8 @@
 spring:
+#  -- for future additions when a prod profile is needed
+#  profiles:
+#    group:
+#      prod: remote
   application:
     name: tapes-hub
   jpa:

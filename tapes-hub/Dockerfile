@@ -38,6 +38,4 @@ COPY --from=build --chown=tapeshub:tapeshub /workspace/extracted/application/ ./
 USER tapeshub
 EXPOSE 8080
 
-ENV SPRING_PROFILES_ACTIVE=prod
-
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=80.0", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=60.0", "-jar", "app.jar"]

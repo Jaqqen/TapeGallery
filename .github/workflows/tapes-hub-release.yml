@@ -20,7 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: docker/setup-buildx-action@v3
+      # This enables backends like gha (see 'Build and push' step for usage of gha cache backend)
+      - name: Set up Docker Buildx to enable cache backends
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to ghcr.io
         uses: docker/login-action@v3
@@ -47,3 +49,68 @@ jobs:
             ghcr.io/${{ steps.owner_and_version.outputs.owner }}/tapes-hub:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy:
+    name: deploy to render
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DB_URL: "TAPESHUB_DB_URL"
+      DB_USER: "TAPESHUB_DB_USER"
+      DB_PASSWORD: "TAPESHUB_DB_PASSWORD"
+      ADM_U: "ADMIN_USER"
+      ADM_PW: "ADMIN_PASSWORD"
+      BLUEPRINT_PATH_FROM_ROOT: "tapes-hub/render.yaml"
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Prepare Render blueprint
+        run: |
+          yq -i '
+            ( .services[] | select(.name == "tapes-hub") ).envVars += [
+              {"key": "${{ env.DB_URL }}", "sync": "false"},
+              {"key": "${{ env.DB_USER }}", "sync": "false"},
+              {"key": "${{ env.DB_PASSWORD }}", "sync": "false"},
+              {"key": "${{ env.ADM_U }}", "sync": "false"},
+              {"key": "${{ env.ADM_PW }}", "sync": "false"}
+          ]' ${{ env.BLUEPRINT_PATH_FROM_ROOT }}
+
+      - name: Configure Render env vars
+        run: |
+          curl --request PUT \
+            --url https://api.render.com/v1/services/${{ secrets.RENDER_SRV_ID_DEV }}/env-vars \
+            --header 'accept: application/json' \
+            --header 'content-type: application/json' \
+            --data '
+              [
+                {
+                  "key": "${{ env.DB_URL }}",
+                  "value": "${{ secrets.TAPESHUB_DB_URL }}"
+                },
+                {
+                  "key": "${{ env.DB_USER }}",
+                  "value": "${{ secrets.TAPESHUB_DB_USER }}"
+                },
+                {
+                  "key": "${{ env.DB_PASSWORD }}",
+                  "value": "${{ secrets.TAPESHUB_DB_PASSWORD }}"
+                },
+                {
+                  "key": "${{ env.ADM_U }}",
+                  "value": "${{ vars.ADM_U }}"
+                },
+                {
+                  "key": "${{ env.ADM_PW }}",
+                  "value": "${{ secrets.ADM_PW }}"
+                }
+              ]
+              '
+
+      # Render pulls the latest image, which the job above has just published.
+      # View render.yaml for details.
+      # View Render dashboard for details.
+      - name: Trigger Render deploy
+        run: |
+          cd tapes-hub;
+          curl --fail --silent --show-error -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL_DEV }}"
