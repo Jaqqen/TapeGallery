@@ -6,12 +6,13 @@
 #
 # To rollback change the tag: point `image.url` at ghcr.io/jaqqen/tapes-hub:<older version>.
 services:
-  - type: web
-    name: tapes-hub
+  - name: tapes-hub-dev
+    type: web
     runtime: image
     plan: free
-    region: oregon
+    region: ohio
     autoDeployTrigger: off
+    autoDeploy: false
     image:
       url: ghcr.io/jaqqen/tapes-hub:latest
     healthCheckPath: /actuator/health/readiness
