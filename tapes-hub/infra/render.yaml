@@ -11,7 +11,6 @@ services:
     runtime: image
     plan: free
     region: ohio
-    autoDeployTrigger: off
     autoDeploy: false
     image:
       url: ghcr.io/jaqqen/tapes-hub:latest
