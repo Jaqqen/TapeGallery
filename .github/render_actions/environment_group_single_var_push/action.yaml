@@ -16,7 +16,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: "Push ${{ inputs.envKey }} value to env group on render"
+    - name: "Push value for key '${{ inputs.envKey }}' to env group on render"
       id: "PushSingleEnvToEnvGrpOnRender"
       shell: bash
       run: |
@@ -24,5 +24,5 @@ runs:
           --url https://api.render.com/v1/env-groups/${{ inputs.envGrpId }}/env-vars/${{ inputs.envKey }} \
           --header 'accept: application/json' \
           --header 'authorization: Bearer ${{ inputs.apiKey }}' \
-          --header 'content-type: application/json'
+          --header 'content-type: application/json' \
           --data '{"value":"${{ inputs.envVal }}"}'

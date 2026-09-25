@@ -57,6 +57,7 @@ jobs:
     timeout-minutes: 15
     environment: remote-dev
     env:
+      SPRING_PROFILES_ACTIVE: "SPRING_PROFILES_ACTIVE"
       DB_URL: "TAPESHUB_DB_URL"
       DB_USER: "TAPESHUB_DB_USER"
       DB_PASSWORD: "TAPESHUB_DB_PASSWORD"
