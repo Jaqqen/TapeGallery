@@ -55,61 +55,46 @@ jobs:
     needs: publish
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: remote-dev
     env:
       DB_URL: "TAPESHUB_DB_URL"
       DB_USER: "TAPESHUB_DB_USER"
       DB_PASSWORD: "TAPESHUB_DB_PASSWORD"
       ADM_U: "ADMIN_USER"
       ADM_PW: "ADMIN_PASSWORD"
-      BLUEPRINT_PATH_FROM_ROOT: "tapes-hub/render.yaml"
     steps:
       - uses: actions/checkout@v7
 
-      - name: Prepare Render blueprint
-        run: |
-          yq -i '
-            ( .services[] | select(.name == "tapes-hub") ).envVars += [
-              {"key": "${{ env.DB_URL }}", "sync": "false"},
-              {"key": "${{ env.DB_USER }}", "sync": "false"},
-              {"key": "${{ env.DB_PASSWORD }}", "sync": "false"},
-              {"key": "${{ env.ADM_U }}", "sync": "false"},
-              {"key": "${{ env.ADM_PW }}", "sync": "false"}
-          ]' ${{ env.BLUEPRINT_PATH_FROM_ROOT }} ;
-          
-          echo '+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+='
-          cat ${{ env.BLUEPRINT_PATH_FROM_ROOT }}
-
-      - name: Configure Render env vars
-        run: |
-          curl --request PUT \
-            --url https://api.render.com/v1/services/${{ secrets.RENDER_SRV_ID_DEV }}/env-vars \
-            --header 'accept: application/json' \
-            --header 'authorization: Bearer ${{ secrets.RENDER_API_KEY }}' \
-            --header 'content-type: application/json' \
-            --data '
-              [
-                {
-                  "key": "${{ env.DB_URL }}",
-                  "value": "${{ secrets.TAPESHUB_DB_URL }}"
-                },
-                {
-                  "key": "${{ env.DB_USER }}",
-                  "value": "${{ secrets.TAPESHUB_DB_USER }}"
-                },
-                {
-                  "key": "${{ env.DB_PASSWORD }}",
-                  "value": "${{ secrets.TAPESHUB_DB_PASSWORD }}"
-                },
-                {
-                  "key": "${{ env.ADM_U }}",
-                  "value": "${{ vars.ADM_U }}"
-                },
-                {
-                  "key": "${{ env.ADM_PW }}",
-                  "value": "${{ secrets.ADM_PW }}"
-                }
-              ]
-              '
+      - name: Provide Render env var '${{ env.SPRING_PROFILES_ACTIVE }}' to group
+        uses: ./.github/render_actions/environment_group_single_var_push
+        with:
+          envKey: ${{ env.SPRING_PROFILES_ACTIVE }}
+          envVal: ${{ vars.SPRING_PROFILES_ACTIVE }}
+      - name: Provide Render env var '${{ env.DB_URL }}' to group
+        uses: ./.github/render_actions/environment_group_single_var_push
+        with:
+          envKey: ${{ env.DB_URL }}
+          envVal: ${{ secrets.TAPESHUB_DB_URL }}
+      - name: Provide Render env var '${{ env.DB_USER }}' to group
+        uses: ./.github/render_actions/environment_group_single_var_push
+        with:
+          envKey: ${{ env.DB_USER }}
+          envVal: ${{ secrets.TAPESHUB_DB_USER }}
+      - name: Provide Render env var '${{ env.DB_PASSWORD }}' to group
+        uses: ./.github/render_actions/environment_group_single_var_push
+        with:
+          envKey: ${{ env.DB_PASSWORD }}
+          envVal: ${{ secrets.TAPESHUB_DB_PASSWORD }}
+      - name: Provide Render env var '${{ env.ADM_U }}' to group
+        uses: ./.github/render_actions/environment_group_single_var_push
+        with:
+          envKey: ${{ env.ADM_U }}
+          envVal: ${{ vars.ADM_U }}
+      - name: Provide Render env var '${{ env.ADM_PW }}' to group
+        uses: ./.github/render_actions/environment_group_single_var_push
+        with:
+          envKey: ${{ env.ADM_PW }}
+          envVal: ${{ secrets.ADM_PW }}
 
       # Render pulls the latest image, which the job above has just published.
       # View render.yaml for details.
@@ -117,4 +102,4 @@ jobs:
       - name: Trigger Render deploy
         run: |
           cd tapes-hub;
-          curl --fail --silent --show-error -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL_DEV }}"
+          curl --fail --silent --show-error -X POST "${{ secrets.RENDER_BLUEPRINT_SYNC_HOOK }}"

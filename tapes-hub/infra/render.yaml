@@ -16,5 +16,5 @@ services:
       url: ghcr.io/jaqqen/tapes-hub:latest
     healthCheckPath: /actuator/health/readiness
     envVars:
-      - key: SPRING_PROFILES_ACTIVE
-        value: remote
+      # Defined on Render dashboard but provisioned by GitHub workflow
+      - fromGroup: tapes-hub-env-gp
