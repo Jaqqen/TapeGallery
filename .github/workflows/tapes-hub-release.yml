@@ -70,31 +70,43 @@ jobs:
         with:
           envKey: ${{ env.SPRING_PROFILES_ACTIVE }}
           envVal: ${{ vars.SPRING_PROFILES_ACTIVE }}
+          envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
+          apiKey: ${{ secrets.RENDER_API_KEY }}
       - name: Provide Render env var '${{ env.DB_URL }}' to group
         uses: ./.github/render_actions/environment_group_single_var_push
         with:
           envKey: ${{ env.DB_URL }}
           envVal: ${{ secrets.TAPESHUB_DB_URL }}
+          envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
+          apiKey: ${{ secrets.RENDER_API_KEY }}
       - name: Provide Render env var '${{ env.DB_USER }}' to group
         uses: ./.github/render_actions/environment_group_single_var_push
         with:
           envKey: ${{ env.DB_USER }}
           envVal: ${{ secrets.TAPESHUB_DB_USER }}
+          envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
+          apiKey: ${{ secrets.RENDER_API_KEY }}
       - name: Provide Render env var '${{ env.DB_PASSWORD }}' to group
         uses: ./.github/render_actions/environment_group_single_var_push
         with:
           envKey: ${{ env.DB_PASSWORD }}
           envVal: ${{ secrets.TAPESHUB_DB_PASSWORD }}
+          envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
+          apiKey: ${{ secrets.RENDER_API_KEY }}
       - name: Provide Render env var '${{ env.ADM_U }}' to group
         uses: ./.github/render_actions/environment_group_single_var_push
         with:
           envKey: ${{ env.ADM_U }}
           envVal: ${{ vars.ADM_U }}
+          envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
+          apiKey: ${{ secrets.RENDER_API_KEY }}
       - name: Provide Render env var '${{ env.ADM_PW }}' to group
         uses: ./.github/render_actions/environment_group_single_var_push
         with:
           envKey: ${{ env.ADM_PW }}
           envVal: ${{ secrets.ADM_PW }}
+          envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
+          apiKey: ${{ secrets.RENDER_API_KEY }}
 
       # Render pulls the latest image, which the job above has just published.
       # View render.yaml for details.

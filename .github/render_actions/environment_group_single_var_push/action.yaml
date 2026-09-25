@@ -9,8 +9,10 @@ inputs:
     required: true
   envGrpId:
     description: "The environment group id as found on the Render dashboard. Provide this by secure means!"
-    required: false
-    default: ${{ secrets.RENDER_ENV_GROUP_ID }}
+    required: true
+  apiKey:
+    description: "The API key to add as Bearer token. Provide this by secure means!"
+    required: true
 runs:
   using: composite
   steps:
@@ -21,6 +23,6 @@ runs:
         curl --request PUT \
           --url https://api.render.com/v1/env-groups/${{ inputs.envGrpId }}/env-vars/${{ inputs.envKey }} \
           --header 'accept: application/json' \
-          --header 'authorization: Bearer ${{ secrets.RENDER_API_KEY }}' \
+          --header 'authorization: Bearer ${{ inputs.apiKey }}' \
           --header 'content-type: application/json'
           --data '{"value":"${{ inputs.envVal }}"}'
