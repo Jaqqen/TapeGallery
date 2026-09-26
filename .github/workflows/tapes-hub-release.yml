@@ -1,0 +1,129 @@
+name: tapes-hub release
+
+on:
+  push:
+    tags: ['tapes-hub-v*']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: publish image to ghcr.io
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      # This enables backends like gha (see 'Build and push' step for usage of gha cache backend)
+      - name: Set up Docker Buildx to enable cache backends
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # tapes-hub-v1.2.3 -> 1.2.3. The owner is lowercased because ghcr.io rejects an image
+      # reference with uppercase in it.
+      - name: Derive image reference
+        id: owner_and_version
+        run: |
+          echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+          echo "version=${GITHUB_REF_NAME#tapes-hub-v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: tapes-hub
+          push: true
+          tags: |
+            ghcr.io/${{ steps.owner_and_version.outputs.owner }}/tapes-hub:${{ steps.owner_and_version.outputs.version }}
+            ghcr.io/${{ steps.owner_and_version.outputs.owner }}/tapes-hub:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: deploy to render
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: remote-dev
+    env:
+      SPRING_PROFILES_ACTIVE: "SPRING_PROFILES_ACTIVE"
+      DB_URL: "TAPESHUB_DB_URL"
+      DB_USER: "TAPESHUB_DB_USER"
+      DB_PASSWORD: "TAPESHUB_DB_PASSWORD"
+      ADM_U: "ADMIN_USER"
+      ADM_PW: "ADMIN_PASSWORD"
+      PORT: "PORT"
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Provide Render env var '${{ env.SPRING_PROFILES_ACTIVE }}' to group
+        uses: ./.github/render_actions/environment_group_single_var_push
+        with:
+          envKey: ${{ env.SPRING_PROFILES_ACTIVE }}
+          envVal: ${{ vars.SPRING_PROFILES_ACTIVE }}
+          envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
+          apiKey: ${{ secrets.RENDER_API_KEY }}
+      - name: Provide Render env var '${{ env.DB_URL }}' to group
+        uses: ./.github/render_actions/environment_group_single_var_push
+        with:
+          envKey: ${{ env.DB_URL }}
+          envVal: ${{ secrets.TAPESHUB_DB_URL }}
+          envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
+          apiKey: ${{ secrets.RENDER_API_KEY }}
+      - name: Provide Render env var '${{ env.DB_USER }}' to group
+        uses: ./.github/render_actions/environment_group_single_var_push
+        with:
+          envKey: ${{ env.DB_USER }}
+          envVal: ${{ secrets.TAPESHUB_DB_USER }}
+          envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
+          apiKey: ${{ secrets.RENDER_API_KEY }}
+      - name: Provide Render env var '${{ env.DB_PASSWORD }}' to group
+        uses: ./.github/render_actions/environment_group_single_var_push
+        with:
+          envKey: ${{ env.DB_PASSWORD }}
+          envVal: ${{ secrets.TAPESHUB_DB_PASSWORD }}
+          envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
+          apiKey: ${{ secrets.RENDER_API_KEY }}
+      - name: Provide Render env var '${{ env.ADM_U }}' to group
+        uses: ./.github/render_actions/environment_group_single_var_push
+        with:
+          envKey: ${{ env.ADM_U }}
+          envVal: ${{ vars.ADM_U }}
+          envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
+          apiKey: ${{ secrets.RENDER_API_KEY }}
+      - name: Provide Render env var '${{ env.ADM_PW }}' to group
+        uses: ./.github/render_actions/environment_group_single_var_push
+        with:
+          envKey: ${{ env.ADM_PW }}
+          envVal: ${{ secrets.ADM_PW }}
+          envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
+          apiKey: ${{ secrets.RENDER_API_KEY }}
+      # Render requires a 'PORT' environment variable to allow inbound HTTP traffic to be
+      # forwarded correctly.
+      # see: https://render.com/docs/web-services#port-binding
+      - name: Provide Render env var '${{ env.PORT }}' to group
+        uses: ./.github/render_actions/environment_group_single_var_push
+        with:
+          envKey: ${{ env.PORT }}
+          envVal: ${{ vars.SERVER_HTTP_PORT }}
+          envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
+          apiKey: ${{ secrets.RENDER_API_KEY }}
+
+      # Render pulls the latest image, which the job above has just published.
+      # View render.yaml for details.
+      # View Render dashboard for details.
+      - name: Trigger Render deploy
+        run: |
+          cd tapes-hub;
+          curl --fail --silent --show-error -X POST "${{ secrets.RENDER_BLUEPRINT_SYNC_HOOK }}"

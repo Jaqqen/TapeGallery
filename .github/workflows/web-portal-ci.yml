@@ -1,0 +1,56 @@
+name: web-portal CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'web-portal/**'
+      - '.github/workflows/web-portal*.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'web-portal/**'
+      - '.github/workflows/web-portal*.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: lint and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web-portal
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web-portal/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload bundle
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-portal-dist_${{ github.run_id }}
+          path: web-portal/dist/
+          retention-days: 14
+          if-no-files-found: error

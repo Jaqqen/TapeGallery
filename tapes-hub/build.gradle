@@ -1,3 +1,12 @@
+import java.text.SimpleDateFormat
+
+static def getBuildDate() {
+    def date = new SimpleDateFormat("yyyy-MM-dd")
+    // to ensure proper parsing
+    date.setLenient(false)
+    return date.format(new Date())
+}
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '4.1.0'
@@ -20,6 +29,18 @@ repositories {
     mavenCentral()
 }
 
+bootJar {
+    archiveFileName = "${getBuildDate()}-${project.name}-${version}.jar"
+
+    // print filename for Dockerfile to read and find correct jar file inside build/libs
+    def dockerFileBootJarFilenameProp = project.findProperty('dockerfileBootJarFilename')
+    if (dockerFileBootJarFilenameProp != null) {
+        doLast {
+            layout.buildDirectory.file("${dockerFileBootJarFilenameProp}").get().asFile.text = archiveFileName.get()
+        }
+    }
+}
+
 ext {
     set('springCloudVersion', "2025.1.2")
 }
@@ -29,6 +50,7 @@ configurations {
 }
 
 dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-client'
@@ -74,9 +96,8 @@ dependencyManagement {
 }
 
 contracts {
-    // No contracts are defined yet. Without this the plugin fails the whole build on the empty
-    // src/contractTest/resources/contracts directory, which it does before any test even runs.
-    failOnNoContracts = false
+    failOnNoContracts = true
+    baseClassForTests = 'com.jaqqen.tapeshub.contract.ApiContractBase'
 }
 
 sourceSets {
@@ -91,6 +112,13 @@ configurations {
     integrationTestCompileOnly.extendsFrom testCompileOnly
     integrationTestAnnotationProcessor.extendsFrom testAnnotationProcessor
     integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+
+    // The plugin creates the contractTest source set but gives it none of the test dependencies
+    // and the base class the generated tests extend needs them.
+    contractTestImplementation.extendsFrom testImplementation
+    contractTestCompileOnly.extendsFrom testCompileOnly
+    contractTestAnnotationProcessor.extendsFrom testAnnotationProcessor
+    contractTestRuntimeOnly.extendsFrom testRuntimeOnly
 }
 
 tasks.register('integrationTest', Test) {

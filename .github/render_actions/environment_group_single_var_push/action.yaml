@@ -1,0 +1,28 @@
+name: "Single ENV var push to Render environment group"
+description: "Uses Render's API to push a single environment variable to a dedicated environment group"
+inputs:
+  envKey:
+    description: "The env key to set the value for"
+    required: true
+  envVal:
+    description: "The env value for the env key"
+    required: true
+  envGrpId:
+    description: "The environment group id as found on the Render dashboard. Provide this by secure means!"
+    required: true
+  apiKey:
+    description: "The API key to add as Bearer token. Provide this by secure means!"
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: "Push value for key '${{ inputs.envKey }}' to env group on render"
+      id: "PushSingleEnvToEnvGrpOnRender"
+      shell: bash
+      run: |
+        curl --request PUT \
+          --url https://api.render.com/v1/env-groups/${{ inputs.envGrpId }}/env-vars/${{ inputs.envKey }} \
+          --header 'accept: application/json' \
+          --header 'authorization: Bearer ${{ inputs.apiKey }}' \
+          --header 'content-type: application/json' \
+          --data '{"value":"${{ inputs.envVal }}"}'

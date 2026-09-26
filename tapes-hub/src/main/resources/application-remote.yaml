@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    # Not DATABASE_URL: platforms set that one themselves in libpq form
+    # (postgres://user:pass@host/db) and the driver rejects it with 'url' must start with "jdbc".
+    url: ${TAPESHUB_DB_URL}
+    # No defaults for credentials to prevent silent healthy startups.
+    username: ${TAPESHUB_DB_USER}
+    password: ${TAPESHUB_DB_PASSWORD}
+    hikari:
+      initialization-fail-timeout: 60000
+      connection-timeout: 30000
+  security:
+    user:
+      # The single account allowed to write. Reads need no account at all - see SecurityConfig.
+      name: ${ADMIN_USER}
+      password: ${ADMIN_PASSWORD}
+
+server:
+  # Let Spring MVC handle forward-headers. Without this, a created tape is forwarded as
+  # http://<container>:8080 instead of the public origin.
+  forward-headers-strategy: framework
+
+# Flyway is inherited (classpath:db/migration) but initial data remains DEV-only
