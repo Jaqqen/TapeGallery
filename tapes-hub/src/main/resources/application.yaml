@@ -25,3 +25,5 @@ management:
     health:
       probes:
         enabled: true
+server:
+  port: ${SERVER_HTTP_PORT}

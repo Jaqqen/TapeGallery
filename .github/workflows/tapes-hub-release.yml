@@ -63,6 +63,7 @@ jobs:
       DB_PASSWORD: "TAPESHUB_DB_PASSWORD"
       ADM_U: "ADMIN_USER"
       ADM_PW: "ADMIN_PASSWORD"
+      PORT: "PORT"
     steps:
       - uses: actions/checkout@v7
 
@@ -106,6 +107,16 @@ jobs:
         with:
           envKey: ${{ env.ADM_PW }}
           envVal: ${{ secrets.ADM_PW }}
+          envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
+          apiKey: ${{ secrets.RENDER_API_KEY }}
+      # Render requires a 'PORT' environment variable to allow inbound HTTP traffic to be
+      # forwarded correctly.
+      # see: https://render.com/docs/web-services#port-binding
+      - name: Provide Render env var '${{ env.PORT }}' to group
+        uses: ./.github/render_actions/environment_group_single_var_push
+        with:
+          envKey: ${{ env.PORT }}
+          envVal: ${{ vars.SERVER_HTTP_PORT }}
           envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
           apiKey: ${{ secrets.RENDER_API_KEY }}
 
