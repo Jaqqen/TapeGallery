@@ -22,7 +22,6 @@ projects:
             runtime: image
             plan: free
             region: ohio
-            autoDeploy: false
             image:
               url: ghcr.io/jaqqen/tapes-hub:latest
             healthCheckPath: /actuator/health/readiness
