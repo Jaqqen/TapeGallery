@@ -120,11 +120,6 @@ jobs:
           envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
           apiKey: ${{ secrets.RENDER_API_KEY }}
 
-      - name: Prepare blueprint
-        run: |
-          sed -i 's/SRV_NAME_PLC_HLDR/${{ vars.RENDER_BP_SERVICE_NAME }}/g' tapes-hub/infra/render.yaml
-          cat tapes-hub/infra/render.yaml
-
       # Render pulls the latest image, which the job above has just published.
       # View render.yaml for details.
       # View Render dashboard for details.
@@ -136,14 +131,13 @@ jobs:
       - name: Trigger Render service deploy
         env:
           render_service_id_var_name: render_service_id
+        # see: RENDER_NAME_REFERENCE_FOR_SYNC_HOOK
         run: |
-          cat tapes-hub/infra/render.yaml
-
           render_service_id=$(curl --request GET \
             --url https://api.render.com/v1/blueprints/${{ secrets.RENDER_BP_ID }} \
             --header 'accept: application/json' \
             --header 'authorization: Bearer ${{ secrets.RENDER_API_KEY }}' \
-            | jq '.resources[] | select(.name == "${{ vars.RENDER_BP_SERVICE_NAME }}") | .id')
+            | jq '.resources[] | select(.name == "tapes-hub-dev") | .id')
 
           if [ -z ${render_service_id} ]; then
             echo "No value found for '${{ env.render_service_id_var_name }}'. Check Render Dashboard for more info." >&2

@@ -10,7 +10,14 @@ projects:
     environments:
       - name: dev
         services:
-          - name: SRV_NAME_PLC_HLDR
+            # see: RENDER_NAME_REFERENCE_FOR_SYNC_HOOK
+            # This name is used in order to redeploy the service whenever it's searched
+            # inside the release workflow.
+            # 'Trigger Render service deploy' inside tapes-hub-release.yml
+            # Dynamic replacement of this value, in order to define the name outside of
+            # this project is unfortunately not possible due to how Render sync works. It syncs
+            # with the file state of a specific branch, not with the state from within the workflow.
+          - name: tapes-hub-dev
             type: web
             runtime: image
             plan: free
