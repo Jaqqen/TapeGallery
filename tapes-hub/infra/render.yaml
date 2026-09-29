@@ -10,7 +10,7 @@ projects:
     environments:
       - name: dev
         services:
-          - name: tapes-hub-dev
+          - name: SRV_NAME_PLC_HLDR
             type: web
             runtime: image
             plan: free

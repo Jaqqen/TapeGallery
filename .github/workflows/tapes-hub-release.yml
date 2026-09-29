@@ -120,10 +120,35 @@ jobs:
           envGrpId: ${{ secrets.RENDER_ENV_GROUP_ID }}
           apiKey: ${{ secrets.RENDER_API_KEY }}
 
+      - name: Prepare blueprint
+        working-directory: ./tapes-hub/infra
+        run: |
+          sed -i 's/SRV_NAME_PLC_HLDR/${{ vars.RENDER_BP_SERVICE_NAME }}/g' render.yaml
+
       # Render pulls the latest image, which the job above has just published.
       # View render.yaml for details.
       # View Render dashboard for details.
-      - name: Trigger Render deploy
+      - name: Trigger Render Blueprint sync
+        working-directory: ./tapes-hub
         run: |
-          cd tapes-hub;
-          curl --fail --silent --show-error -X POST "${{ secrets.RENDER_BLUEPRINT_SYNC_HOOK }}"
+          curl --fail --silent --show-error -X POST \
+            "https://api.render.com/sync/${{ secrets.RENDER_BP_ID }}?key=${{ secrets.RENDER_BP_SYNC_HOOK_KEY }}"
+
+      - name: Trigger Render service deploy
+        working-directory: ./tapes-hub
+        env:
+          render_service_id_var_name: render_service_id
+        run: |
+          render_service_id=$(curl --request GET \
+            --url https://api.render.com/v1/blueprints/${{ secrets.RENDER_BP_ID }} \
+            --header 'accept: application/json' \
+            --header 'authorization: Bearer ${{ secrets.RENDER_API_KEY }}' \
+            | jq '.resources[] | select(.name == "${{ vars.RENDER_BP_SERVICE_NAME }}") | .id')
+
+          if [ -z ${render_service_id} ]; then
+            echo "${{ env.render_service_id_var_name }} not present" >&2
+            exit 1;
+          fi
+
+          curl --fail --silent --show-error -X POST \
+            https://api.render.com/deploy/${render_service_id}?key=${{ secrets.RENDER_BP_SERVICE_DEPLOY_HOOK_KEY }}
