@@ -1,6 +1,5 @@
 name: web-portal release
 
-# Tag to ship: web-portal-v1.2.3. See tapes-hub-release.yml for why tags live in their own file.
 on:
   push:
     tags: ['web-portal-v*']

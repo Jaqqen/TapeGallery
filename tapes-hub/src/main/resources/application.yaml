@@ -20,10 +20,11 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,caches,metrics,info
   endpoint:
     health:
       probes:
         enabled: true
+
 server:
   port: ${PORT}
