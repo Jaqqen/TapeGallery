@@ -27,4 +27,4 @@ management:
         enabled: true
 
 server:
-  port: ${PORT}
+  port: ${PORT:-8080}
