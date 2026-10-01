@@ -4,6 +4,7 @@ name: web-portal release
 on:
   push:
     tags: ['web-portal-v*']
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

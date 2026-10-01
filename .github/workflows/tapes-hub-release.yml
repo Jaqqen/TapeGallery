@@ -3,6 +3,13 @@ name: tapes-hub release
 on:
   push:
     tags: ['tapes-hub-v*']
+  workflow_dispatch:
+    inputs:
+      manual_image_version:
+        description: "Version set through manual workflow dispatch. Otherwise version 
+        is retrieved by parsing from the tag-name."
+        required: false
+        default: "0.0.0"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -31,13 +38,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # tapes-hub-v1.2.3 -> 1.2.3. The owner is lowercased because ghcr.io rejects an image
-      # reference with uppercase in it.
+      # Strips the version-name and leaves only the version: tapes-hub-v1.2.3 -> 1.2.3.
+      # The ",," sets the name to lowercase. This is done because ghcr.io rejects an
+      # image reference with uppercase in it.
       - name: Derive image reference
         id: owner_and_version
+        env:
+          MANUAL_IMG_VER: ${{ inputs.manual_image_version }}
         run: |
           echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
-          echo "version=${GITHUB_REF_NAME#tapes-hub-v}" >> "$GITHUB_OUTPUT"
+          STRIPPED_TAG="${GITHUB_REF_NAME#my-tag-name-v}"
+          echo "version=${MANUAL_IMG_VER:-$STRIPPED_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v6
