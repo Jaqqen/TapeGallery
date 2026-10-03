@@ -4,6 +4,7 @@ import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
@@ -23,6 +24,8 @@ import java.util.List;
 public class SecurityConfig {
 
     private static final String API = "/api/**";
+    private static final String CSRF_ENDPOINT = "/api/csrf";
+    private static final String HEALTH = "/actuator/health/**";
     private static final String WEB_PORTAL_DEV_ORIGIN = "http://localhost:5555";
 
     @Bean
@@ -49,6 +52,11 @@ public class SecurityConfig {
                 // without this an unhandled failure comes back as a 401 from
                 // the error dispatch, hiding the actual status behind a login prompt.
                 .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                // Allow health endpoints regardless of auth
+                .requestMatchers(HttpMethod.GET, HEALTH).permitAll()
+                // Explicit to authenticated
+                .requestMatchers(HttpMethod.GET, CSRF_ENDPOINT).authenticated()
+                .requestMatchers(HttpMethod.GET, API).permitAll()
                 .anyRequest().authenticated())
             .httpBasic(Customizer.withDefaults())
             .build();

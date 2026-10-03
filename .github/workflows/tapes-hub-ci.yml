@@ -1,12 +1,18 @@
-name: CI
+name: tapes-hub CI
 
+# Path-filtered so a web-portal-only change does not spend time on tapes-hub (Gradle build or tests).
 on:
   push:
     branches: [master]
+    paths:
+      - 'tapes-hub/**'
+      - '.github/workflows/tapes-hub*.yml'
   pull_request:
     branches: [master]
+    paths:
+      - 'tapes-hub/**'
+      - '.github/workflows/tapes-hub*.yml'
 
-# One run per branch. Master builds finish; superseded PR pushes are cancelled.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
@@ -18,8 +24,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  backend:
-    name: tapes-hub
+  build:
+    name: build and test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:
@@ -61,5 +67,24 @@ jobs:
           check_name: tapes-hub test results
           detailed_summary: true
           include_passed: true
-          # when it's a fork PR only annotate, no check runs needed
+          # when it's a fork PR only annotate -> no check runs needed
           annotate_only: ${{ github.event.pull_request.head.repo.fork == true }}
+
+  image:
+    name: container image builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Only that it builds. The Dockerfile has its own ways to break that a Gradle build cannot
+      # catch, and finding that out at release time is too late.
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: tapes-hub
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

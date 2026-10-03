@@ -10,18 +10,52 @@ import java.util.UUID;
 /**
  * Tests that:
  * <ul>
- *   <li>Authentication is enforced on all endpoints
+ *   <li>Reading the catalogue needs no account
+ *   <li>Writing does, and so does the token endpoint
  *   <li>Invalid credentials are rejected
  *   <li>CSRF tokens are required for write operations
  *   <li>Tokens are bound to their session
  *   <li>Valid credentials with correct CSRF tokens are allowed through
  * </ul>
+ *
+ * <p>The {@code it} profile is not {@code dev}, so this runs against the same config a deployment
+ * does.
  */
 class SecurityConfigIT extends ApiIntegrationTest {
 
+    /** The portal serves visitors who never log in, so the shelf has to load without credentials. */
     @Test
-    void anAnonymousReadIsRejectedWith401() {
+    void anAnonymousReadIsAllowed() {
         client.get().uri("/api/tapes")
+            .exchange()
+            .expectStatus().isOk();
+    }
+
+    /**
+     * Reads being open does not open writes. CSRF is checked before authentication.
+     * Result in 403 for a missing token instead of 401 for a missing account.
+     */
+    @Test
+    void anAnonymousWriteIsStillRejected() {
+        client.post().uri("/api/genres")
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(TapeRequests.genre("Horror"))
+            .exchange()
+            .expectStatus().isForbidden();
+    }
+
+    /** A platform probes this before it routes traffic, holding no credentials to offer. */
+    @Test
+    void theHealthProbesAnswerWithoutCredentials() {
+        client.get().uri("/actuator/health/readiness")
+            .exchange()
+            .expectStatus().isOk();
+    }
+
+    /** Health is the only endpoint exposed; the rest of actuator stays shut. */
+    @Test
+    void theRestOfActuatorIsNotReachable() {
+        client.get().uri("/actuator/env")
             .exchange()
             .expectStatus().isUnauthorized();
     }

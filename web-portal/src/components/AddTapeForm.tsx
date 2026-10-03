@@ -148,6 +148,9 @@ export default function AddTapeForm({onCreated, onClose}: AddTapeFormProps) {
                 onClose();
             })
             .catch((cause: unknown) => {
+                // TODO: an AuthenticationRequiredError arrives here as ordinary error text, so a
+                // visitor who simply needs to sign in is told so in the same red line as a failed
+                // save. Branch on it and open a login instead - see api/tapes.ts.
                 setError(cause instanceof Error ? cause.message : "Could not save the tape.");
                 setIsSaving(false);
             });

@@ -54,6 +54,26 @@ export interface NewTape {
     pattern: Tape["pattern"];
 }
 
+interface CsrfTokenResponse {
+    token: string;
+    parameterName: string;
+    headerName: string;
+}
+
+/**
+ * Raised when tapes-hub asks for credentials the browser has not supplied.
+ *
+ * TODO: nothing in the portal prompts - credentials are left to the browser's native Basic dialog,
+ * raised by the `WWW-Authenticate` header on the 401. Replace with an in-portal login holding the
+ * `Authorization` header in memory, or gate writes out of non-dev builds.
+ */
+export class AuthenticationRequiredError extends Error {
+    constructor(message = "Sign in to change the catalogue.") {
+        super(message);
+        this.name = "AuthenticationRequiredError";
+    }
+}
+
 /** RFC 9457 problem body, which is what tapes-hub returns for every 4xx. */
 interface ProblemDetail {
     title?: string;
@@ -121,17 +141,67 @@ export async function fetchGenres(signal?: AbortSignal): Promise<GenreDetails[]>
     return await response.json() as GenreDetails[];
 }
 
-/** Returns the stored tape, so the caller can put it on the shelf without refetching the list. */
-export async function createTape(tape: NewTape, signal?: AbortSignal): Promise<Tape> {
-    const response: Response = await fetch("/api/tapes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(tape),
+async function fetchCsrfToken(signal?: AbortSignal): Promise<CsrfTokenResponse> {
+    // Fetched per write, never cached: Basic re-authenticates on every request and
+    // CsrfAuthenticationStrategy rotates the token each time it does.
+    const response: Response = await fetch("/api/csrf", {
+        // The token is bound to JSESSIONID and only counts alongside the session that issued it.
+        credentials: "same-origin",
         signal,
     });
-    if (!response.ok) {
-        throw new Error(await toErrorMessage(response, "Could not save the tape"));
+
+    if (response.status === 401) {
+        throw new AuthenticationRequiredError();
     }
+    if (!response.ok) {
+        throw new Error(`Could not obtain a CSRF token (${response.status} ${response.statusText})`);
+    }
+
+    return await response.json() as CsrfTokenResponse;
+}
+
+/**
+ * A wrapper method to execute WRITE actions
+ */
+async function writeJson(
+    method: string,
+    url: string,
+    body: unknown,
+    fallback: string,
+    signal?: AbortSignal,
+): Promise<Response> {
+    const csrf: CsrfTokenResponse = await fetchCsrfToken(signal);
+
+    const response: Response = await fetch(url, {
+        method,
+        credentials: "same-origin",
+        headers: {
+            "Content-Type": "application/json",
+            [csrf.headerName]: csrf.token,
+        },
+        body: JSON.stringify(body),
+        signal,
+    });
+
+    if (response.status === 401) {
+        throw new AuthenticationRequiredError();
+    }
+    // CSRF runs ahead of authentication, so a 403 here is the token, not the account: the session
+    // it was created against is gone or the token was already spent.
+    if (response.status === 403) {
+        throw new Error("That session is no longer valid. Reload the page and try again.");
+    }
+    if (!response.ok) {
+        throw new Error(await toErrorMessage(response, fallback));
+    }
+
+    return response;
+}
+
+/** Returns the stored tape, so the caller can put it on the shelf without refetching the list. */
+export async function createTape(tape: NewTape, signal?: AbortSignal): Promise<Tape> {
+    const response: Response =
+        await writeJson("POST", "/api/tapes", tape, "Could not save the tape", signal);
 
     return toTape(await response.json() as TapeResponse);
 }

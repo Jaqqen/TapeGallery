@@ -154,7 +154,7 @@ function trackActiveInstances(currentPidNumber: PidFileContent['pid'], currentPi
                     process.kill(stalePidNumber, 0);
                     // if "process.kill(..., 0)" doesn't throw an error, then it's killable
                     process.kill(stalePidNumber, 9);
-                } catch (e) {
+                } catch {
                     // Do nothing when 'Error: kill ESRCH;' is returned.
                     // This indicates that no such process is running.
                     // Otherwise, surrounding catch will print this error every time.

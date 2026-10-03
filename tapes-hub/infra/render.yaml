@@ -1,0 +1,30 @@
+# $schema: https://render.com/schema/render.yaml.json
+# Render Blueprint for tapes-hub.
+#
+# The image is the release artifact: CI publishes it to ghcr.io and Render pulls it.
+# The GHCR package must be public or Render needs registry credentials.
+#
+# To rollback change the tag: point `image.url` at ghcr.io/jaqqen/tapes-hub:<older version>.
+projects:
+  - name: TapeGallery Project
+    environments:
+      - name: dev
+        services:
+            # see: RENDER_NAME_REFERENCE_FOR_SYNC_HOOK
+            # This name is used in order to redeploy the service whenever it's searched
+            # inside the release workflow.
+            # 'Trigger Render service deploy' inside tapes-hub-release.yml
+            # Dynamic replacement of this value, in order to define the name outside of
+            # this project is unfortunately not possible due to how Render sync works. It syncs
+            # with the file state of a specific branch, not with the state from within the workflow.
+          - name: tapes-hub-dev
+            type: web
+            runtime: image
+            plan: free
+            region: ohio
+            image:
+              url: ghcr.io/jaqqen/tapes-hub:latest
+            healthCheckPath: /actuator/health/readiness
+            envVars:
+              # Defined on Render dashboard but provisioned by GitHub workflow
+              - fromGroup: tapes-hub-env-gp
