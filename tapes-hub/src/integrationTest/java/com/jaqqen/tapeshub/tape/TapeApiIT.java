@@ -214,7 +214,7 @@ class TapeApiIT extends ApiIntegrationTest {
         String location = authedPost("/api/tapes",
             TapeRequests.tape(genreId, "Neon Nights", TapePattern.RETRO_BLOCKS))
             .expectStatus().isCreated()
-            // web-portal expects "retro-blocks"; the constant name RETRO_BLOCKS must never reach it.
+            // tapes-deck expects "retro-blocks"; the constant name RETRO_BLOCKS must never reach it.
             .expectBody()
             .jsonPath("$.pattern").isEqualTo("retro-blocks")
             .returnResult()

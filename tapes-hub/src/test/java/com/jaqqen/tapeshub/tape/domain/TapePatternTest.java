@@ -8,7 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 /**
- * The wire values are shared with {@code web-portal}, so they are a contract rather than an
+ * The wire values are shared with {@code tapes-deck}, so they are a contract rather than an
  * implementation detail - renaming a constant is free, changing its value is a breaking change.
  */
 class TapePatternTest {
