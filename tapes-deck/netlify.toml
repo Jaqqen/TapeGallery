@@ -1,0 +1,54 @@
+# How Netlify serves tapes-deck.
+#
+# CI builds the bundle and ships it with `netlify deploy --dir dist --prod`, so Netlify itself never
+# builds. netlify-cli resolves this file from its working directory — which tapes-deck-release.yml
+# already pins to `tapes-deck` — and sends the rules below along with the upload.
+
+# Insurance, not the live path: this only takes effect if the site is ever linked to the repository
+# and built by Netlify. Keep it in step with tapes-deck-ci.yml's Node version.
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+#[build.environment]
+#  NODE_VERSION = "24"
+
+# The bundle has no API address compiled into it: the portal calls a relative /api and this rule
+# proxies it to tapes-hub, which is what lets the two ship on their own schedules.
+#
+# status 200 makes it a proxy rather than a redirect — with 301/302 the browser would follow to the
+# other origin and the same-origin design (no CORS, same-site CSRF cookie) would be lost.
+# force keeps the rule in effect even if a file ever lands under /api in dist.
+#
+# This is the one place the backend address lives. Moving tapes-hub is an edit here plus a deploy.
+#
+# A future SPA catch-all must be declared AFTER this rule: Netlify matches redirects in declaration
+# order, so a leading /* would shadow the proxy.
+[[redirects]]
+  from = "/api/*"
+  to = "https://<netlify_tapes_hub_redirects_placeholder>/api/:splat"
+  status = 200
+  force = true
+
+# Vite content-hashes these filenames, so a given URL's bytes never change.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# index.html is not hashed and names the current assets, so it must never be held in a cache.
+# This is already Netlify's default for everything; stated here rather than inherited. A request to
+# `/` is not matched by this rule and falls through to that same default, which is correct.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Security headers only — deliberately no Cache-Control here, so there is no precedence question
+# between this rule and the two above.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"

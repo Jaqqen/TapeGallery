@@ -1,0 +1,79 @@
+name: tapes-deck release
+
+on:
+  push:
+    tags: ['tapes-deck-v*']
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: build the bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: tapes-deck
+    steps:
+      - name: Setup tapes-deck workflow
+        id: setup-tapes-deck
+        uses: ./.github/netlify_actions/tapes_deck_setup
+        with:
+          doLint: "false"
+
+      - name: Install toml-cli
+        run: pip install toml-cli
+
+      - name: Prepare Netlify TOML - NODE VERSION
+        run: |
+          toml-cli set netlify.toml build.environment.NODE_VERSION ${{ steps.node-version.outputs.NVMRC_NODE_VER }}
+          toml-cli set netlify.toml build.environment.NODE_VERSION ${{ steps.node-version.outputs.NVMRC_NODE_VER }}
+
+      # see: RENDER_NAME_REFERENCE_FOR_SYNC_HOOK - tapes-hub-dev is used for the name of the service
+      - name: Prepare Netlify TOML - Redirect to Render.com tapes-hub service
+        run: |
+          echo "Render.com: Fetch Service-ID from Blueprint-API"
+          render_service_id=$(curl --request GET \
+            --url https://api.render.com/v1/blueprints/${{ secrets.RENDER_BP_ID }} \
+            --header 'accept: application/json' \
+            --header 'authorization: Bearer ${{ secrets.RENDER_API_KEY }}' \
+            | jq '.resources[] | select(.name == "tapes-hub-dev") | .id')
+          
+          echo "Render.com: Fetch Service-URL from Service-API"
+          render_service_url=$(curl --request GET \
+            --url https://api.render.com/v1/services/${render_service_id} \
+            --header 'accept: application/json' \
+            --header 'authorization: Bearer ${{ secrets.RENDER_API_KEY }}' \
+            | jq -r '.serviceDetails.url')
+
+          echo "Netlify.toml: Replace URL with Service-URL"
+          sed -i 's|<netlify_tapes_hub_redirects_placeholder>|${render_service_url}|g' netlify.toml
+
+      # Installs the CLI and executes the 'deploy' command to deploy to Netlify.
+      # netlify-cli resolves netlify.toml from its working directory.
+      # Params:
+      # --no-build - used since 'netlify_actions/tapes_deck_setup' already builds the project
+      # --dir      - to only push compiled and static content
+      # --prod     - pushes the content to the server and immediately sets the content live
+      # --message  - A message to print to the deployment log
+      - name: Deploy to Netlify
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: npx --yes netlify-cli@17 deploy --no-build --dir dist --prod --message "${{ github.ref_name }}"
+
+      # As reference to the deployed content.
+      - name: Upload bundle
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: tapes-deck-dist_${{ github.ref_name }}
+          path: tapes-deck/dist/
+          retention-days: 90
+          if-no-files-found: error

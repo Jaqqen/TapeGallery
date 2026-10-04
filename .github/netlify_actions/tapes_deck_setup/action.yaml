@@ -1,0 +1,40 @@
+name: "tapes-deck workflow setup"
+description: "A setup action to define common setup steps inside a single composite action."
+inputs:
+  doLint:
+    description: "The env key to set the value for"
+    required: false
+    default: "true"
+outputs:
+  NODE_VERSION_FROM_SETUP:
+    description: "The node version read and set inside this composite action."
+    value: ${{ steps.node-version.outputs.NVMRC_NODE_VER }}
+runs:
+  using: composite
+  steps:
+  - uses: actions/checkout@v7
+
+  - name: Read Node version
+    id: node-version
+    shell: bash
+    run: echo "NVMRC_NODE_VER=$(cat .nvmrc)" >> $GITHUB_OUTPUT
+
+  - name: Set up Node
+    uses: actions/setup-node@v4
+    with:
+      node-version: ${{ steps.node-version.outputs.NVMRC_NODE_VER }}
+      cache: npm
+      cache-dependency-path: tapes-deck/package-lock.json
+
+  - name: Install
+    shell: bash
+    run: npm ci
+
+  - name: Lint
+    if: ${{ fromJSON(inputs.doLint) }}
+    shell: bash
+    run: npm run lint
+
+  - name: Build
+    shell: bash
+    run: npm run build
