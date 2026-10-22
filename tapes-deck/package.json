@@ -34,7 +34,7 @@
     "node-addon-api": "^8.9.2",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vite": "^8.2.2"
+    "vite": "^8.3.5"
   },
   "allowScripts": {
     "@swc/core@1.16.13": true,
