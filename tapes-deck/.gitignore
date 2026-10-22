@@ -4,3 +4,12 @@ node_modules
 # Project
 .pids
 dist
+
+# Netlify related
+.netlify
+
+deno.lock
+
+netlify-dev/netlify-dev-check-file
+netlify-dev/netlify.toml
+netlify-dev/.gitignore

@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "dev-netlify": "netlify-dev/netlify-dev-setup.sh && npm run dev-netlify:serve",
+    "dev-netlify:fresh": "netlify-dev/netlify-dev-setup.sh -f && npm run dev-netlify:serve",
+    "dev-netlify:serve": "cd netlify-dev && npx netlify dev",
     "dev": "vite --port 5555",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
@@ -27,8 +30,19 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "netlify-cli": "^27.10.2",
+    "node-addon-api": "^8.9.2",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^8.2.2"
+  },
+  "allowScripts": {
+    "@swc/core@1.16.13": true,
+    "@netlify/esbuild@0.13.13": true,
+    "netlify-cli@27.10.2": true,
+    "esbuild@0.28.1": true,
+    "unix-dgram@2.0.7": true,
+    "sharp@0.34.5": true,
+    "fsevents@2.3.3": true
   }
 }

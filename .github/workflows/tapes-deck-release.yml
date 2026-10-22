@@ -16,7 +16,10 @@ jobs:
   publish:
     name: build the bundle
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    environment: remote-dev
+    env:
+      NETLIFY_CLI_BIN: "netlify-cli@17"
     defaults:
       run:
         working-directory: tapes-deck
@@ -26,14 +29,6 @@ jobs:
         uses: ./.github/netlify_actions/tapes_deck_setup
         with:
           doLint: "false"
-
-      - name: Install toml-cli
-        run: pip install toml-cli
-
-      - name: Prepare Netlify TOML - NODE VERSION
-        run: |
-          toml-cli set netlify.toml build.environment.NODE_VERSION ${{ steps.node-version.outputs.NVMRC_NODE_VER }}
-          toml-cli set netlify.toml build.environment.NODE_VERSION ${{ steps.node-version.outputs.NVMRC_NODE_VER }}
 
       # see: RENDER_NAME_REFERENCE_FOR_SYNC_HOOK - tapes-hub-dev is used for the name of the service
       - name: Prepare Netlify TOML - Redirect to Render.com tapes-hub service
@@ -55,7 +50,9 @@ jobs:
           echo "Netlify.toml: Replace URL with Service-URL"
           sed -i 's|<netlify_tapes_hub_redirects_placeholder>|${render_service_url}|g' netlify.toml
 
-      # Installs the CLI and executes the 'deploy' command to deploy to Netlify.
+      # Uses the netlify-cli without installing it as a permanent node_module
+      # --telemetry-disable: opts out of data usage collection
+      #
       # netlify-cli resolves netlify.toml from its working directory.
       # Params:
       # --no-build - used since 'netlify_actions/tapes_deck_setup' already builds the project
@@ -66,7 +63,9 @@ jobs:
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-        run: npx --yes netlify-cli@17 deploy --no-build --dir dist --prod --message "${{ github.ref_name }}"
+        run: |
+          npx --yes ${{ env.NETLIFY_CLI_BIN }} --telemetry-disable;
+          npx --yes ${{ env.NETLIFY_CLI_BIN }} deploy --no-build --dir dist --prod --message "${{ github.ref_name }}"
 
       # As reference to the deployed content.
       - name: Upload bundle
