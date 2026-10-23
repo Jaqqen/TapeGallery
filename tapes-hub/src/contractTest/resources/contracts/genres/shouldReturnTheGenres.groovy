@@ -4,7 +4,7 @@ import org.springframework.cloud.contract.spec.Contract
 
 Contract.make {
     description """
-The genre list. web-portal's AddTapeForm fills its dropdown from this and posts back the `id`, so
+The genre list. tapes-deck's AddTapeForm fills its dropdown from this and posts back the `id`, so
 the pair (id, name) is the contract - the rest is carried for clients that want it.
 """
     request {

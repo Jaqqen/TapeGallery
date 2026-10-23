@@ -1,3 +1,6 @@
 # IDEA
 .idea/workspace*
 *.iml
+
+# Local Netlify folder
+.netlify

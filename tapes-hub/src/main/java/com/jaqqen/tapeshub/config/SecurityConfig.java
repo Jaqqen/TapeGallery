@@ -26,7 +26,7 @@ public class SecurityConfig {
     private static final String API = "/api/**";
     private static final String CSRF_ENDPOINT = "/api/csrf";
     private static final String HEALTH = "/actuator/health/**";
-    private static final String WEB_PORTAL_DEV_ORIGIN = "http://localhost:5555";
+    private static final String TAPES_DECK_DEV_ORIGIN = "http://localhost:5555";
 
     @Bean
     @Profile("dev")
@@ -66,7 +66,7 @@ public class SecurityConfig {
     @Profile("dev")
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(WEB_PORTAL_DEV_ORIGIN));
+        config.setAllowedOrigins(List.of(TAPES_DECK_DEV_ORIGIN));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
 

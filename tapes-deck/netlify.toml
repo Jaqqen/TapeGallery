@@ -1,0 +1,36 @@
+# CI workflow already builds the app
+[build]
+  publish = "dist"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://<netlify_tapes_hub_redirects_placeholder>/api/:splat"
+  status = 200
+  force = true
+
+# Assets rarely change.
+# On any change, Vite will automatically change the hash of the file, making sure that the file
+# is loaded even though it's old version might still be cached.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# This allows the above header to be applied since index.html holds the reference to assets with
+# all the hashed files. Hence, why it's max-age is 0.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Security headers only — deliberately no Cache-Control here, so there is no precedence question
+# between this rule and the two above.
+[[headers]]
+  for = "/*"
+  [headers.values]
+  # e.g. prevent txt file to interpreted as script
+  X-Content-Type-Options = "nosniff"
+  # prevents iframe embedding
+  X-Frame-Options = "DENY"
+  # make sure that cross-origin knows about where it was invoked from
+  Referrer-Policy = "strict-origin-when-cross-origin"

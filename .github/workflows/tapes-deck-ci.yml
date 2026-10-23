@@ -1,0 +1,42 @@
+name: tapes-deck CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'tapes-deck/**'
+      - '.github/workflows/tapes-deck*.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'tapes-deck/**'
+      - '.github/workflows/tapes-deck*.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: lint and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: tapes-deck
+    steps:
+      - name: Setup tapes-deck workflow
+        id: setup-tapes-deck
+        uses: ./.github/netlify_actions/tapes_deck_setup
+
+      - name: Upload bundle
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: tapes-deck-dist_${{ github.run_id }}
+          path: tapes-deck/dist/
+          retention-days: 14
+          if-no-files-found: error

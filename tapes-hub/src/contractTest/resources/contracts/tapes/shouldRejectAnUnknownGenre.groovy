@@ -4,7 +4,7 @@ import org.springframework.cloud.contract.spec.Contract
 
 Contract.make {
     description """
-Posting a tape whose genre does not exist. web-portal can reach this for real: AddTapeForm fills its
+Posting a tape whose genre does not exist. tapes-deck can reach this for real: AddTapeForm fills its
 dropdown once on mount, so a genre deleted between that load and the submit arrives here.
 
 The status is the point. 422 rather than 404 is a deliberate choice - the tape URL is fine, the body
