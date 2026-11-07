@@ -24,15 +24,19 @@ jobs:
     name: lint and build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      WORK_DIR: tapes-deck
     defaults:
       run:
-        working-directory: tapes-deck
+        working-directory: ${{ env.WORK_DIR }}
     steps:
       - uses: actions/checkout@v7
 
       - name: Setup tapes-deck workflow
         id: setup-tapes-deck
         uses: ./.github/netlify_actions/tapes_deck_setup
+        with:
+          workDir: ${{ env.WORK_DIR }}
 
       - name: Upload bundle
         if: ${{ !cancelled() }}
