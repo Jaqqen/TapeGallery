@@ -21,7 +21,7 @@ runs:
     run: echo "NVMRC_NODE_VER=$(cat .nvmrc)" >> $GITHUB_OUTPUT
 
   - name: Set up Node
-    uses: actions/setup-node@v4
+    uses: actions/setup-node@v7
     with:
       node-version: ${{ steps.node-version.outputs.NVMRC_NODE_VER }}
       cache: npm
