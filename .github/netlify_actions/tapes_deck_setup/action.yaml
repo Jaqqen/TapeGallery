@@ -12,8 +12,6 @@ outputs:
 runs:
   using: composite
   steps:
-  - uses: actions/checkout@v7
-
   - name: Read Node version
     id: node-version
     shell: bash
