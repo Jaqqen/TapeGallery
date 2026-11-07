@@ -20,9 +20,10 @@ jobs:
     environment: remote-dev
     env:
       NETLIFY_CLI_BIN: "netlify-cli@17"
+      WORK_DIR: tapes-deck
     defaults:
       run:
-        working-directory: tapes-deck
+        working-directory: ${{ env.WORK_DIR }}
     steps:
       - uses: actions/checkout@v7
 
@@ -31,6 +32,7 @@ jobs:
         uses: ./.github/netlify_actions/tapes_deck_setup
         with:
           doLint: "false"
+          workDir: ${{ env.WORK_DIR }}
 
       # see: RENDER_NAME_REFERENCE_FOR_SYNC_HOOK - tapes-hub-dev is used for the name of the service
       - name: Prepare Netlify TOML - Redirect to Render.com tapes-hub service
