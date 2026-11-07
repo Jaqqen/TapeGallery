@@ -13,3 +13,6 @@ deno.lock
 netlify-dev/netlify-dev-check-file
 netlify-dev/netlify.toml
 netlify-dev/.gitignore
+
+
+.env

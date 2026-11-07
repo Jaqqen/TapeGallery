@@ -34,3 +34,8 @@
   X-Frame-Options = "DENY"
   # make sure that cross-origin knows about where it was invoked from
   Referrer-Policy = "strict-origin-when-cross-origin"
+
+[dev]
+  command = "npm run dev"
+  framework = "#custom"
+  targetPort = 5555
