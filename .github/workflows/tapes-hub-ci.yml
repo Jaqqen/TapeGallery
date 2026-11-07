@@ -1,6 +1,6 @@
 name: tapes-hub CI
 
-# Path-filtered so a web-portal-only change does not spend time on tapes-hub (Gradle build or tests).
+# Path-filtered so a tapes-deck-only change does not spend time on tapes-hub (Gradle build or tests).
 on:
   push:
     branches: [master]

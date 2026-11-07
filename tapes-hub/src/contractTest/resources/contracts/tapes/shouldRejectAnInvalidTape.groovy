@@ -4,7 +4,7 @@ import org.springframework.cloud.contract.spec.Contract
 
 Contract.make {
     description """
-A rejected tape. This is the error shape web-portal actually renders: `toErrorMessage` in
+A rejected tape. This is the error shape tapes-deck actually renders: `toErrorMessage` in
 src/api/tapes.ts reads `errors` first and joins it into the red line under the form, falling back to
 `detail`. Both of those, and the RFC 9457 wrapper around them, are therefore part of the contract -
 dropping `errors` would leave the form showing a bare status code.

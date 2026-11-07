@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
- * Pattern value is exactly as it's in {@code web-portal}
+ * Pattern value is exactly as it's in {@code tapes-deck}
  *
  * <p>
  *     {@link JsonValue} and {@link JsonCreator} prevents constant names to be sent to frontend.

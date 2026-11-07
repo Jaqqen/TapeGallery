@@ -1,16 +1,16 @@
-name: web-portal CI
+name: tapes-deck CI
 
 on:
   push:
     branches: [master]
     paths:
-      - 'web-portal/**'
-      - '.github/workflows/web-portal*.yml'
+      - 'tapes-deck/**'
+      - '.github/workflows/tapes-deck*.yml'
   pull_request:
     branches: [master]
     paths:
-      - 'web-portal/**'
-      - '.github/workflows/web-portal*.yml'
+      - 'tapes-deck/**'
+      - '.github/workflows/tapes-deck*.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,33 +24,25 @@ jobs:
     name: lint and build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      WORK_DIR: tapes-deck
     defaults:
       run:
-        working-directory: web-portal
+        working-directory: ${{ env.WORK_DIR }}
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
+      - name: Setup tapes-deck workflow
+        id: setup-tapes-deck
+        uses: ./.github/netlify_actions/tapes_deck_setup
         with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: web-portal/package-lock.json
-
-      - name: Install
-        run: npm ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Build
-        run: npm run build
+          workDir: ${{ env.WORK_DIR }}
 
       - name: Upload bundle
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: web-portal-dist_${{ github.run_id }}
-          path: web-portal/dist/
+          name: tapes-deck-dist_${{ github.run_id }}
+          path: tapes-deck/dist/
           retention-days: 14
           if-no-files-found: error

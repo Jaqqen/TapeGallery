@@ -4,7 +4,7 @@ import org.springframework.cloud.contract.spec.Contract
 
 Contract.make {
     description """
-The shelf. web-portal calls this on mount and maps it into its own Tape shape, so every field
+The shelf. tapes-deck calls this on mount and maps it into its own Tape shape, so every field
 below is load-bearing: `releaseDate` is sliced for the year, `genre` is flattened to its name, and
 `duration` is formatted from milliseconds. Removing or renaming one breaks a deployed portal that
 has not been rebuilt - which, shipping these two separately, is the normal case.

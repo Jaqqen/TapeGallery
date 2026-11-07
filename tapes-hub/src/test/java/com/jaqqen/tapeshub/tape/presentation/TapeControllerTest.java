@@ -43,7 +43,7 @@ class TapeControllerTest {
     private static final Instant CREATED = Instant.parse("2026-09-10T12:00:00Z");
     private static final Instant MODIFIED = Instant.parse("2026-09-11T09:30:00Z");
     private static final GenreDetails ACTION_GENRE_DETAILS = new GenreDetails(
-        GENRE_ID, "Action", "Chases and stunts.", CREATED, CREATED, null);;
+        GENRE_ID, "Action", "Chases and stunts.", CREATED, CREATED, null);
 
     private TapeResponse neonNightsTapeResponse;
 
@@ -91,7 +91,7 @@ class TapeControllerTest {
     void patternIsWrittenAsItsKebabCaseWireValue() throws Exception {
         when(service.get(TAPE_ID)).thenReturn(neonNightsTapeResponse);
 
-        // web-portal expects "retro-blocks"; the constant name RETRO_BLOCKS must never reach it.
+        // tapes-deck expects "retro-blocks"; the constant name RETRO_BLOCKS must never reach it.
         mvc.perform(get("/api/tapes/{id}", TAPE_ID))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.pattern").value("retro-blocks"));
