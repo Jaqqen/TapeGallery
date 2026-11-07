@@ -28,6 +28,8 @@ jobs:
       run:
         working-directory: tapes-deck
     steps:
+      - uses: actions/checkout@v7
+
       - name: Setup tapes-deck workflow
         id: setup-tapes-deck
         uses: ./.github/netlify_actions/tapes_deck_setup
