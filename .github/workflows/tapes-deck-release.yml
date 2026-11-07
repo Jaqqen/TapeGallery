@@ -48,7 +48,9 @@ jobs:
             | jq -r '.serviceDetails.url')
 
           echo "Netlify.toml: Replace URL with Service-URL"
-          sed -i 's|<netlify_tapes_hub_redirects_placeholder>|${render_service_url}|g' netlify.toml
+          echo "REDIRECTS_TO=${render_service_url}/api/:splat" >> .env
+          
+          pipx run pre-init-netlify.py
 
       # Uses the netlify-cli without installing it as a permanent node_module
       # --telemetry-disable: opts out of data usage collection
